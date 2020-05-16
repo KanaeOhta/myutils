@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='texttools',
+    name='utils',
     version='0.0.1',
     author='Kanae Ohta',
     # author_email='',

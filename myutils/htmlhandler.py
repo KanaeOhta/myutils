@@ -1,9 +1,6 @@
 from bs4 import BeautifulSoup, SoupStrainer
 
 
-STRAINER = ["portal-header", "portal-body", "portal-footer"]
-
-
 class HtmlHandler:
 
     def __init__(self, html_file):

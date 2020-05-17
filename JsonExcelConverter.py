@@ -5,9 +5,9 @@ import re
 
 from tqdm import tqdm
 
-from texttools.xlsxhandler import ExcelMixin
-from texttools.jsonhandler import JsonHandler
-from texttools.utils import create_folder, get_file
+from myutils.xlsxhandler import ExcelMixin
+from myutils.jsonhandler import JsonHandler
+from myutils.utils import create_folder, get_file
 
 
 def handle_commandline():

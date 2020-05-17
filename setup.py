@@ -4,7 +4,7 @@ setup(
     name='utils',
     version='0.0.1',
     author='Kanae Ohta',
-    # author_email='',
+    author_email='example@example.com',
     url='https://github.com/KanaeOhta/myutils.git',
     descriptions='python scripts',
     long_description='',

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='myutils',
-    version='0.0.1',
+    version='0.0.2',
     author='Kanae Ohta',
     author_email='example@example.com',
     url='https://github.com/KanaeOhta/myutils.git',

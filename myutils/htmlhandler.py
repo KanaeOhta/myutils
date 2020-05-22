@@ -1,28 +1,31 @@
-from bs4 import BeautifulSoup, SoupStrainer
+from lxml import html
 
 
 class HtmlHandler:
 
-    def __init__(self, html_file):
+    def __init__(self, html_file, root):
         self.file = html_file
+        self.root = root
 
 
-    def read(self, html_file=None):
-        html_file = self.file if html_file is None else html_file
+    def to_string(self, tag):
+        return html.tostring(tag, encoding='utf-8').decode()
+
+
+    @classmethod
+    def read_file(cls, html_file):
         with open(html_file, 'r', encoding='utf-8') as f:
             return f.read()
 
 
-    def _parse(self, strainer, html_file=None):
-        only_tags = SoupStrainer(**strainer)
-        bs =  BeautifulSoup(
-            self.read(html_file), 
-            'lxml', 
-            parse_only=only_tags
-        )
-        return bs
+    @classmethod
+    def get_root(cls, html_file):
+        return html.fromstring(HtmlHandler.read_file(html_file))
 
 
-    def parse(self, *args):
-        raise NotImplementedError()
+    @classmethod
+    def retrieve(cls, html_file, *args):
+        root = HtmlHandler.get_root(html_file)
+        return cls(html_file, root, *args)
+
 

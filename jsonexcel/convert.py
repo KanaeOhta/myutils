@@ -64,7 +64,7 @@ class Convert:
                             yield from self.parse_json(
                                 {f'{pref}{key}{JOINT}{str(i)}' : list_val}, group=group)
                 else:
-                    yield MAIN, f'{pref}{key}{JOINT}{0}'
+                    yield group, f'{pref}{key}{JOINT}{0}'
             else:
                 yield group, f'{pref}{key}'
 

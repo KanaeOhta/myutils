@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 import json
 import os
@@ -6,6 +7,7 @@ import openpyxl
 
 
 JOINT = '.'
+MAIN = 'main'
 
 
 class ReadJson:
@@ -47,17 +49,46 @@ class Convert:
             else:
                 yield f'{pref}{key}', val
 
+    
+    def parse_json(self, dic, pref='', group=MAIN):
+        for key, val in dic.items():
+            if isinstance(val, dict):
+                yield from self.parse_json(val, f'{pref}{key}{JOINT}', group)
+            elif isinstance(val, list):
+                if val:
+                    for i, list_val in enumerate(val):
+                        if isinstance(list_val, dict):
+                            yield from self.parse_json(
+                                list_val, f'{pref}{key}', f'{pref}{key}')
+                        else:
+                            yield from self.parse_json(
+                                {f'{pref}{key}{JOINT}{str(i)}' : list_val}, group=group)
+                else:
+                    yield MAIN, f'{pref}{key}{JOINT}{0}'
+            else:
+                yield group, f'{pref}{key}'
+
 
 class ToExcel(Convert):
 
     def __init__(self, json_file):
         self.excel_file = self.get_file_path(json_file, '.xlsx')
         self.json = ReadJson(os.path.abspath(json_file))
-       
+
+
+    def get_excel_format(self):
+        excel_format = defaultdict(set)
+        for dic in self.json:
+            for group, key in self.parse_json(dic):
+                excel_format[group].add(key)
+        return excel_format
+
 
     def convert(self):
+        excel_format = self.get_excel_format()
+        print(excel_format)
         records = ({k : v for k, v in self.serialize(dic)} for dic in self.json)
-        self.write(records)
+        # self.write(records)
 
 
     def write(self, records):

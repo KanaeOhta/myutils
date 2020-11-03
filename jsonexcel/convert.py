@@ -1,4 +1,3 @@
-from collections import defaultdict
 from datetime import datetime
 import json
 import os
@@ -59,12 +58,10 @@ class Convert:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.parse_json(
-                                list_val, f'{pref}{key}', f'{pref}{key}')
+                                list_val, f'{pref}{key}{JOINT}', f'{pref}{key}')
                         else:
                             yield from self.parse_json(
                                 {f'{pref}{key}{JOINT}{str(i)}' : list_val}, group=group)
-                else:
-                    yield group, f'{pref}{key}{JOINT}{0}'
             else:
                 yield group, f'{pref}{key}'
 
@@ -77,18 +74,19 @@ class ToExcel(Convert):
 
 
     def get_excel_format(self):
-        excel_format = defaultdict(set)
+        excel_format = {}
         for dic in self.json:
-            for group, key in self.parse_json(dic):
-                excel_format[group].add(key)
+            for group, key in self.parse_json(dic): 
+                if key not in excel_format.keys():
+                    excel_format[key] = group
         return excel_format
 
 
     def convert(self):
         excel_format = self.get_excel_format()
-        print(excel_format)
+        # print(excel_format)
         records = ({k : v for k, v in self.serialize(dic)} for dic in self.json)
-        # self.write(records)
+        self.write(records)
 
 
     def write(self, records):

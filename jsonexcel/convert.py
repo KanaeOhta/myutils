@@ -1,8 +1,10 @@
+from collections import defaultdict
 from datetime import datetime
 import json
 import os
 
-import openpyxl
+# import openpyxl
+from xlsxwriter.workbook import Workbook
 
 
 JOINT = '.'
@@ -71,28 +73,37 @@ class ToExcel(Convert):
     def __init__(self, json_file):
         self.excel_file = self.get_file_path(json_file, '.xlsx')
         self.json = ReadJson(os.path.abspath(json_file))
+        self.excel_format = {}
 
 
     def get_excel_format(self):
-        excel_format = {}
-        for dic in self.json:
-            for group, key in self.parse_json(dic): 
-                if key not in excel_format.keys():
-                    excel_format[key] = group
-        return excel_format
+        if not self.excel_format:
+            for dic in self.json:
+                for group, key in self.parse_json(dic): 
+                    if key not in self.excel_format.keys():
+                        self.excel_format[key] = group
 
 
     def convert(self):
-        excel_format = self.get_excel_format()
-        # print(excel_format)
+        self.get_excel_format()
         records = ({k : v for k, v in self.serialize(dic)} for dic in self.json)
         self.write(records)
 
 
-    def write(self, records):
-        for record in records:
-            print(record)
+    def set_sheets(self, wb):
+        sheet_key_map = defaultdict(list)
+        for key, group in self.excel_format.items():
+            sheet_key_map[group].append(key)
+        for group, keys in sheet_key_map.items():
+            if not (sheet := wb.get_worksheet_by_name(group)):
+                sheet = wb.add_worksheet(group)
+            for col, key in enumerate(keys):
+                sheet.write(0, col, key)
+            
 
+    def write(self, records):
+        with Workbook(self.excel_file) as wb:
+            self.set_sheets(wb)
     
 
 if __name__ == '__main__':

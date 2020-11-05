@@ -95,9 +95,10 @@ class ToExcel(Convert):
         for key, group in self.excel_format.items():
             sheet_key_map[group].append(key)
         for group, keys in sheet_key_map.items():
-            if not (sheet := wb.get_worksheet_by_name(group)):
+            sheet = wb.get_worksheet_by_name(group)
+            if sheet is None:
                 sheet = wb.add_worksheet(group)
-            for col, key in enumerate(keys):
+            for col, key in enumerate(keys, 1):
                 sheet.write(0, col, key)
             
 

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 import json
 import os
+import re
 
 # import openpyxl
 from xlsxwriter.workbook import Workbook
@@ -74,7 +75,8 @@ class ToExcel(Convert):
         self.excel_file = self.get_file_path(json_file, '.xlsx')
         self.json = ReadJson(os.path.abspath(json_file))
         self.excel_format = {}
-
+        self.sheets = None
+       
 
     def get_excel_format(self):
         if not self.excel_format:
@@ -82,6 +84,8 @@ class ToExcel(Convert):
                 for group, key in self.parse_json(dic): 
                     if key not in self.excel_format.keys():
                         self.excel_format[key] = group
+            self.excel_format = {key.replace(group+'.', '') : group \
+                for key, group in self.excel_format.items()}
 
 
     def convert(self):
@@ -91,6 +95,7 @@ class ToExcel(Convert):
 
 
     def set_sheets(self, wb):
+        self.sheets = {sh: 1 for sh in self.excel_format.values()}    
         sheet_key_map = defaultdict(list)
         for key, group in self.excel_format.items():
             sheet_key_map[group].append(key)
@@ -100,13 +105,30 @@ class ToExcel(Convert):
                 sheet = wb.add_worksheet(group)
             for col, key in enumerate(keys, 1):
                 sheet.write(0, col, key)
-            
+
+
+    def get_row(self, name):
+        self.sheets[name] += 1
+        return self.sheets[name]
+
 
     def write(self, records):
+        pattern = re.compile(r'\D+$')
         with Workbook(self.excel_file) as wb:
             self.set_sheets(wb)
-    
+            for i, record in enumerate(records, 1):
+                for key, val in record.items():
+                    col_name = pattern.findall(key)
+                    if col_name:
+                        col_name = col_name[0]
+                        index = f'{i}_{key.replace(col_name, "")}'
+                    else:
+                        col_name = key
+                        index = i
+                    sheet_name = self.excel_format(col_name)
+                    row = self.get_row(sheet_name)
 
+                    
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
     # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}

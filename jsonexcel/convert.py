@@ -31,8 +31,7 @@ class ExcelSheet:
         self.index = index
 
 
-    @property
-    def column(self):
+    def column(self, key):
         pass
 
     

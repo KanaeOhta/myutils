@@ -24,6 +24,25 @@ class ReadJson:
                 yield dic
 
 
+class ExcelSheet:
+
+    def __init__(self, row=0, index=''):
+        self.row = row
+        self.index = index
+
+
+    @property
+    def column(self):
+        pass
+
+    
+    def __call__(self, index):
+        if self.index != index:
+            self.index = index
+            self.row += 1
+        return self.row
+
+
 class Convert:
 
     def get_file_path(self, original_path, ext):
@@ -42,10 +61,10 @@ class Convert:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.serialize(
-                                list_val, f'{pref}{key}{JOINT}{str(i)}{JOINT}')
+                                list_val, f'{pref}{key}{JOINT}{i}{JOINT}')
                         else:
                             yield from self.serialize(
-                                {f'{pref}{key}{JOINT}{str(i)}' : list_val})
+                                {f'{pref}{key}{JOINT}{i}' : list_val})
                 else:
                     yield f'{pref}{key}{JOINT}{str(0)}', val
             else:
@@ -91,28 +110,27 @@ class ToExcel(Convert):
     def convert(self):
         self.get_excel_format()
         records = ({k : v for k, v in self.serialize(dic)} for dic in self.json)
-        self.write(records)
+        self.output(records)
 
 
     def set_sheets(self, wb):
-        self.sheets = {sh: 1 for sh in self.excel_format.values()}    
-        sheet_key_map = defaultdict(list)
-        for key, group in self.excel_format.items():
-            sheet_key_map[group].append(key)
-        for group, keys in sheet_key_map.items():
-            sheet = wb.get_worksheet_by_name(group)
+        self.sheets = {val: ExcelSheet() for val in self.excel_format.values()}    
+        for sh_name in self.sheets.keys():
+            keys = [key for key, val in self.excel_format.items() if val == sh_name]
+            sheet = wb.get_worksheet_by_name(sh_name)
             if sheet is None:
-                sheet = wb.add_worksheet(group)
+                sheet = wb.add_worksheet(sh_name)
             for col, key in enumerate(keys, 1):
                 sheet.write(0, col, key)
 
 
-    def get_row(self, name):
-        self.sheets[name] += 1
-        return self.sheets[name]
+    def write(self, sheet, row, index, value):
+        # if value.isdecimal():
+        #     sheet.write_number()
+        pass
 
 
-    def write(self, records):
+    def output(self, records):
         pattern = re.compile(r'\D+$')
         with Workbook(self.excel_file) as wb:
             self.set_sheets(wb)
@@ -121,12 +139,15 @@ class ToExcel(Convert):
                     col_name = pattern.findall(key)
                     if col_name:
                         col_name = col_name[0]
-                        index = f'{i}_{key.replace(col_name, "")}'
+                        index = f'{i}_{key[:-len(col_name)]}'
+                        col_name = col_name.lstrip('.')
                     else:
                         col_name = key
                         index = i
-                    sheet_name = self.excel_format(col_name)
-                    row = self.get_row(sheet_name)
+                    row = self.sheets(sh_name)(index)
+                    sh_name = self.excel_format(col_name)
+                    sheet = wb.add_worksheet(sh_name)
+                    self.write(sheet, row, index, val)
 
                     
 if __name__ == '__main__':

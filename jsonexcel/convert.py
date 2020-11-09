@@ -26,22 +26,42 @@ class ReadJson:
 
 class ExcelSheet:
 
-    def __init__(self, row=0, index=''):
-        self.row = row
-        self.index = index
+    def __init__(self, sheet, keys, row=0, index=''):
+        self._row = row
+        self._index = index
+        self.sheet = sheet
+        self.set_keys(keys)
+
+
+    def set_keys(self, keys):
+        self.keys = {}
+        for col, key in enumerate(keys, 1):
+            self.keys[key] = col
+            self.write(0, col, key)
 
 
     def column(self, key):
-        pass
-
-    
-    def __call__(self, index):
-        if self.index != index:
-            self.index = index
-            self.row += 1
-        return self.row
+        return self.keys[key]
 
 
+    def row(self, index):
+        if self._index != index:
+            self._index = index
+            self._row += 1
+        return self._row
+
+
+    def write(self, row, col, value):
+        if not value:
+            self.sheet.write_blank(row, col, value)
+        elif type(value) == bool:
+            self.sheet.write_boolean(row, col, value)
+        elif isinstance(value, str):
+            self.sheet.write_string(row, col, value)
+        else:
+            self.sheet.write_number(row, col, value)
+
+       
 class Convert:
 
     def get_file_path(self, original_path, ext):
@@ -113,20 +133,23 @@ class ToExcel(Convert):
 
 
     def set_sheets(self, wb):
-        self.sheets = {val: ExcelSheet() for val in self.excel_format.values()}    
-        for sh_name in self.sheets.keys():
-            keys = [key for key, val in self.excel_format.items() if val == sh_name]
-            sheet = wb.get_worksheet_by_name(sh_name)
-            if sheet is None:
-                sheet = wb.add_worksheet(sh_name)
-            for col, key in enumerate(keys, 1):
-                sheet.write(0, col, key)
+        self.sheets = {}
+        for _, sh_name in self.excel_format.items():
+            if sh_name not in self.sheets:  
+                self.sheets[sh_name] = ExcelSheet(
+                    wb.add_worksheet(sh_name),
+                    [key for key, val in self.excel_format.items() if val == sh_name]
+                )
+                            
 
-
-    def write(self, sheet, row, index, value):
-        # if value.isdecimal():
-        #     sheet.write_number()
-        pass
+    def write(self, col_name, index, value):
+        sh_name = self.excel_format.get(col_name)
+        if sh_name:
+            sheet = self.sheets[sh_name]
+            col = sheet.column(col_name)
+            row = sheet.row(index)
+            sheet.write(row, 0, index)
+            sheet.write(row, col, value)
 
 
     def output(self, records):
@@ -136,17 +159,30 @@ class ToExcel(Convert):
             for i, record in enumerate(records, 1):
                 for key, val in record.items():
                     col_name = pattern.findall(key)
-                    if col_name:
-                        col_name = col_name[0]
-                        index = f'{i}_{key[:-len(col_name)]}'
-                        col_name = col_name.lstrip('.')
-                    else:
+                    if not col_name:
                         col_name = key
-                        index = i
-                    row = self.sheets(sh_name)(index)
-                    sh_name = self.excel_format(col_name)
-                    sheet = wb.add_worksheet(sh_name)
-                    self.write(sheet, row, index, val)
+                        index = str(i)
+                    else:
+                        col_name = col_name[0]
+                        if len(key) == len(col_name):
+                            col_name = key
+                            index = str(i)
+                        else:
+                            index = f'{i}_{key[:-len(col_name)]}'
+                            col_name = col_name.lstrip('.')
+                    self.write(col_name, index, val)
+                    
+
+                
+                    # if col_name:
+                    #     col_name = col_name[0]
+                    #     index = f'{i}_{key[:-len(col_name)]}'
+                    #     col_name = col_name.lstrip('.')
+                    # else:
+                    #     col_name = key
+                    #     index = str(i)
+                    
+                    # self.write(col_name, index, val)
 
                     
 if __name__ == '__main__':

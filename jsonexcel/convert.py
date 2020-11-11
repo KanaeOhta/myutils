@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import namedtuple
 from datetime import datetime
 import json
 import os
@@ -9,6 +9,7 @@ from xlsxwriter.workbook import Workbook
 
 
 JOINT = '.'
+HYPHEN = '-'
 MAIN = 'main'
 
 
@@ -22,6 +23,9 @@ class ReadJson:
         with open(self.file, 'r', encoding='utf-8') as f:
             for dic in json.load(f):
                 yield dic
+
+
+Cell = namedtuple('Cell', 'key idx value')
 
 
 class ExcelSheet:
@@ -51,7 +55,9 @@ class ExcelSheet:
         return self._row
 
 
-    def write(self, row, col, value):
+    def write(self, row, col, value, index=''):
+        if index:
+            self.sheet.write(row, 0, index)
         if not value:
             self.sheet.write_blank(row, col, value)
         elif type(value) == bool:
@@ -71,29 +77,30 @@ class Convert:
         return path
 
 
-    def serialize(self, dic, pref=''):
+    def serialize(self, dic, idx, pref=''):
         for key, val in dic.items():
             if isinstance(val, dict):
-                yield from self.serialize(val, f'{pref}{key}{JOINT}')
+                yield from self.serialize(val, 
+                    idx, f'{pref}{key}{JOINT}')
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
-                            yield from self.serialize(
-                                list_val, f'{pref}{key}{JOINT}{i}{JOINT}')
+                            yield from self.serialize(list_val, 
+                                f'{idx}{HYPHEN}{i}', f'{pref}{key}{JOINT}')
                         else:
-                            yield from self.serialize(
-                                {f'{pref}{key}{JOINT}{i}' : list_val})
+                            yield from self.serialize({f'{pref}{key}{JOINT}{i}' : list_val}, idx)
                 else:
-                    yield f'{pref}{key}{JOINT}{str(0)}', val
+                    yield Cell(f'{pref}{key}{JOINT}{str(0)}', idx, val)
             else:
-                yield f'{pref}{key}', val
+                yield Cell(f'{pref}{key}', idx, val)
 
     
     def parse_json(self, dic, pref='', group=MAIN):
         for key, val in dic.items():
             if isinstance(val, dict):
-                yield from self.parse_json(val, f'{pref}{key}{JOINT}', group)
+                yield from self.parse_json(
+                    val, f'{pref}{key}{JOINT}', group)
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
@@ -122,13 +129,12 @@ class ToExcel(Convert):
                 for group, key in self.parse_json(dic): 
                     if key not in self.excel_format.keys():
                         self.excel_format[key] = group
-            self.excel_format = {key.replace(group+'.', '') : group \
-                for key, group in self.excel_format.items()}
 
 
-    def convert(self):
+    def convert_all(self):
         self.get_excel_format()
-        records = ({k : v for k, v in self.serialize(dic)} for dic in self.json)
+        records = ((cell for cell in self.serialize(dic, str(i))) \
+            for i, dic in enumerate(self.json, 1))
         self.output(records)
 
 
@@ -142,49 +148,23 @@ class ToExcel(Convert):
                 )
                             
 
-    def write(self, col_name, index, value):
-        sh_name = self.excel_format.get(col_name)
-        if sh_name:
-            sheet = self.sheets[sh_name]
-            col = sheet.column(col_name)
-            row = sheet.row(index)
-            sheet.write(row, 0, index)
-            sheet.write(row, col, value)
+    def write(self, sh_name, cell):
+        sheet = self.sheets[sh_name]
+        col = sheet.column(cell.key)
+        row = sheet.row(cell.idx)
+        sheet.write(row, col, cell.value, cell.idx)
 
 
     def output(self, records):
-        pattern = re.compile(r'\D+$')
         with Workbook(self.excel_file) as wb:
             self.set_sheets(wb)
-            for i, record in enumerate(records, 1):
-                for key, val in record.items():
-                    col_name = pattern.findall(key)
-                    if not col_name:
-                        col_name = key
-                        index = str(i)
-                    else:
-                        col_name = col_name[0]
-                        if len(key) == len(col_name):
-                            col_name = key
-                            index = str(i)
-                        else:
-                            index = f'{i}_{key[:-len(col_name)]}'
-                            col_name = col_name.lstrip('.')
-                    self.write(col_name, index, val)
+            for record in records:
+                for cell in record:
+                    sh_name = self.excel_format.get(cell.key)
+                    if sh_name:
+                        self.write(sh_name, cell)
                     
 
-                
-                    # if col_name:
-                    #     col_name = col_name[0]
-                    #     index = f'{i}_{key[:-len(col_name)]}'
-                    #     col_name = col_name.lstrip('.')
-                    # else:
-                    #     col_name = key
-                    #     index = str(i)
-                    
-                    # self.write(col_name, index, val)
-
-                    
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
     # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
@@ -195,5 +175,5 @@ if __name__ == '__main__':
 
     to_excel = ToExcel('database.json')
     print(to_excel.excel_file)
-    to_excel.convert()
+    to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})

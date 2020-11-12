@@ -4,7 +4,7 @@ import json
 import os
 import re
 
-# import openpyxl
+import openpyxl
 from xlsxwriter.workbook import Workbook
 
 
@@ -67,7 +67,14 @@ class ExcelSheet:
         else:
             self.sheet.write_number(row, col, value)
 
-       
+
+class ReadOnlySheet:
+
+    def __init__(self, sheet):
+        self.sheet = sheet
+
+
+     
 class Convert:
 
     def get_file_path(self, original_path, ext):
@@ -117,8 +124,9 @@ class Convert:
 class ToExcel(Convert):
 
     def __init__(self, json_file):
+        json_file = os.path.abspath(json_file)
         self.excel_file = self.get_file_path(json_file, '.xlsx')
-        self.json = ReadJson(os.path.abspath(json_file))
+        self.json = ReadJson(json_file)
         self.excel_format = {}
         self.sheets = None
        
@@ -163,7 +171,30 @@ class ToExcel(Convert):
                     sh_name = self.excel_format.get(cell.key)
                     if sh_name:
                         self.write(sh_name, cell)
-                    
+
+
+class FromExcel(Convert):
+
+    def __init__(self, excel_file):
+        self.excel_file = os.path.abspath(excel_file)
+        
+
+    def set_sheets(self):
+        pass
+
+
+    def read(self):
+        pass
+
+
+    def convert(self):
+        wb = openpyxl.load_workbook(self.excel_file)
+        for sheet in wb:
+            print(sheet.title)
+        # sheet.cell(row=3, column=1)
+        wb.close()
+
+
 
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
@@ -177,3 +208,6 @@ if __name__ == '__main__':
     print(to_excel.excel_file)
     to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201111220522.xlsx"
+    # from_excel = FromExcel(path)
+    # from_excel.convert()

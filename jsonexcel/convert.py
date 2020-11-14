@@ -8,7 +8,7 @@ import openpyxl
 from xlsxwriter.workbook import Workbook
 
 
-JOINT = '.'
+DOT = '.'
 HYPHEN = '-'
 MAIN = 'main'
 
@@ -88,17 +88,17 @@ class Convert:
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.serialize(val, 
-                    idx, f'{pref}{key}{JOINT}')
+                    idx, f'{pref}{key}{DOT}')
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.serialize(list_val, 
-                                f'{idx}{HYPHEN}{i}', f'{pref}{key}{JOINT}')
+                                f'{idx}{HYPHEN}{i}', f'{pref}{key}{DOT}')
                         else:
-                            yield from self.serialize({f'{pref}{key}{JOINT}{i}' : list_val}, idx)
+                            yield from self.serialize({f'{pref}{key}{HYPHEN}{i}' : list_val}, idx)
                 else:
-                    yield Cell(f'{pref}{key}{JOINT}{str(0)}', idx, val)
+                    yield Cell(f'{pref}{key}{DOT}{str(0)}', idx, val)
             else:
                 yield Cell(f'{pref}{key}', idx, val)
 
@@ -107,16 +107,16 @@ class Convert:
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.parse_json(
-                    val, f'{pref}{key}{JOINT}', group)
+                    val, f'{pref}{key}{DOT}', group)
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.parse_json(
-                                list_val, f'{pref}{key}{JOINT}', f'{pref}{key}')
+                                list_val, f'{pref}{key}{DOT}', f'{pref}{key}')
                         else:
                             yield from self.parse_json(
-                                {f'{pref}{key}{JOINT}{str(i)}' : list_val}, group=group)
+                                {f'{pref}{key}{HYPHEN}{i}' : list_val}, group=group)
             else:
                 yield group, f'{pref}{key}'
 

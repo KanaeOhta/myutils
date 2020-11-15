@@ -72,6 +72,18 @@ class ReadOnlySheet:
 
     def __init__(self, sheet):
         self.sheet = sheet
+        self.keys = tuple(key for key in self.set_keys())
+  
+
+    def set_keys(self):
+        for col in range(2, self.sheet.max_column + 1):
+            key = self.sheet.cell(row=1, column=col).value
+            if key:
+                yield key
+
+
+    def read(self, index):
+        pass
 
 
 class Convert:
@@ -99,7 +111,7 @@ class Convert:
                 else:
                     yield Cell(f'{pref}{key}{DOT}{str(0)}', idx, val)
             else:
-                yield Cell(f'{pref}{key}', idx, val)
+                yield f'{pref}{key}', idx, val
 
     
     def parse_json(self, dic, pref='', group=MAIN):
@@ -183,7 +195,7 @@ class ToExcel(Convert):
 
     def convert_all(self):
         self.get_excel_format()
-        records = ((cell for cell in self.serialize(dic, str(i))) \
+        records = ((Cell(key, idx, val) for key, idx, val in self.serialize(dic, str(i))) \
             for i, dic in enumerate(self.json, 1))
         self.output(records)
 
@@ -219,21 +231,17 @@ class FromExcel(Convert):
 
     def __init__(self, excel_file):
         self.excel_file = os.path.abspath(excel_file)
+        self.sheets = None
         
-
-    def set_sheets(self):
-        pass
-
-
-    def read(self):
-        pass
-
+        
+    def set_sheets(self, wb):
+        self.sheets = tuple(ReadOnlySheet(sh) for sh \
+            in wb if sh.cell(row=2, column=1).value)
+        
 
     def convert(self):
         wb = openpyxl.load_workbook(self.excel_file)
-        for sheet in wb:
-            print(sheet.title)
-        # sheet.cell(row=3, column=1)
+        self.set_sheets(wb)
         wb.close()
 
 
@@ -247,10 +255,11 @@ if __name__ == '__main__':
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
     # to_excel = ToExcel('database.json')
-    to_excel = ToExcel('dict10.json')
-    print(to_excel.excel_file)
-    to_excel.convert_all()
+    # to_excel = ToExcel('dict10.json')
+    # print(to_excel.excel_file)
+    # to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201111220522.xlsx"
-    # from_excel = FromExcel(path)
-    # from_excel.convert()
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201115111613.xlsx"
+    from_excel = FromExcel(path)
+    from_excel.convert()

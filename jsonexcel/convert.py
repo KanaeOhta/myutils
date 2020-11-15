@@ -74,7 +74,6 @@ class ReadOnlySheet:
         self.sheet = sheet
 
 
-     
 class Convert:
 
     def get_file_path(self, original_path, ext):
@@ -119,6 +118,49 @@ class Convert:
                                 {f'{pref}{key}{HYPHEN}{i}' : list_val}, group=group)
             else:
                 yield group, f'{pref}{key}'
+
+
+    def set_container_to_list(self, li, idx, container):
+        try:
+            li[idx]
+        except IndexError:
+            li.append(container())
+
+
+    def set_container_to_dict(self, dic, key, container):
+        if key not in dic:
+            dic[key] = container()
+
+
+    def _deserialize(self, new_dic, keys, idxes, val):
+        if not idxes:
+            if len(keys) == 1:
+                if HYPHEN in keys[0]:
+                    temp_keys = keys[0].split(HYPHEN)
+                    self.set_container_to_dict(new_dic, temp_keys[0], list)
+                    if val:
+                        li = new_dic[temp_keys[0]]
+                        li.append(val)
+                    return
+                new_dic[keys[0]] = val
+                return
+            else:
+                self.set_container_to_dict(new_dic, keys[0], dict)
+                self._deserialize(new_dic[keys[0]], keys[1:], idxes, val)
+        else:
+            self.set_container_to_dict(new_dic, keys[0], list)
+            li = new_dic[keys[0]]
+            self.set_container_to_list(li, idxes[0], dict)
+            self._deserialize(li[idxes[0]], keys[1:], idxes[1:], val)
+       
+
+    def deserialize(self, dic):
+        new_dic = {}
+        for (key_str, idx_str), val in dic.items():
+            keys =key_str.split(DOT)
+            idxes = [int (idx) for idx in idx_str.split(HYPHEN)]
+            self._deserialize(new_dic, keys, idxes[1:], val)
+        return new_dic
 
 
 class ToExcel(Convert):
@@ -204,7 +246,8 @@ if __name__ == '__main__':
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
-    to_excel = ToExcel('database.json')
+    # to_excel = ToExcel('database.json')
+    to_excel = ToExcel('dict10.json')
     print(to_excel.excel_file)
     to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})

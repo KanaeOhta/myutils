@@ -72,19 +72,25 @@ class ReadOnlySheet:
 
     def __init__(self, sheet):
         self.sheet = sheet
-        self.keys = tuple(key for key in self.set_keys())
+        self.keys = self.set_keys()
+        self.max_col = len(self.keys) + 1
   
 
+    def is_empty(self, cell):
+        return cell.value is None or not str(cell.value).strip()    
+    
+
     def set_keys(self):
-        for col in range(2, self.sheet.max_column + 1):
-            key = self.sheet.cell(row=1, column=col).value
-            if key:
-                yield key
+        row = self.sheet[1]
+        return tuple(cell.value for cell in row if not self.is_empty(cell))
+       
 
-
-    def read(self, index):
-        pass
-
+    def read(self, serial):
+        for row in self.sheet.iter_rows(min_row=2, min_col=1, max_col=self.max_col):
+            idx = row[0].value
+            for cell, key in zip(row[1:], self.keys):
+                 yield Cell(key, idx, cell.value)
+                
 
 class Convert:
 
@@ -237,12 +243,16 @@ class FromExcel(Convert):
     def set_sheets(self, wb):
         self.sheets = tuple(ReadOnlySheet(sh) for sh \
             in wb if sh.cell(row=2, column=1).value)
-        
+   
 
     def convert(self):
         wb = openpyxl.load_workbook(self.excel_file)
         self.set_sheets(wb)
         wb.close()
+
+    
+    def read(self):
+        pass
 
 
 
@@ -260,6 +270,6 @@ if __name__ == '__main__':
     # to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201111220522.xlsx"
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201115111613.xlsx"
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
     from_excel = FromExcel(path)
     from_excel.convert()

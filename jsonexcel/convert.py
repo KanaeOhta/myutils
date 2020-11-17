@@ -1,8 +1,8 @@
 from collections import namedtuple
 from datetime import datetime
+import itertools
 import json
 import os
-import re
 
 import openpyxl
 from xlsxwriter.workbook import Workbook
@@ -11,6 +11,10 @@ from xlsxwriter.workbook import Workbook
 DOT = '.'
 HYPHEN = '-'
 MAIN = 'main'
+
+
+class NoMoreRecord(Exception):
+    pass
 
 
 class ReadJson:
@@ -74,6 +78,8 @@ class ReadOnlySheet:
         self.sheet = sheet
         self.keys = self.set_keys()
         self.max_col = len(self.keys) + 1
+        self.max_row = self.sheet.max_row
+        self.row = 2
   
 
     def is_empty(self, cell):
@@ -86,11 +92,20 @@ class ReadOnlySheet:
        
 
     def read(self, serial):
-        for row in self.sheet.iter_rows(min_row=2, min_col=1, max_col=self.max_col):
+        min_row = self.row
+        if min_row > self.max_row:
+            raise NoMoreRecord() 
+        for row in self.sheet.iter_rows(
+                min_row=min_row, max_row = self.max_row, min_col=1, max_col=self.max_col):
             idx = row[0].value
+            if self.is_empty(idx):
+                raise NoMoreRecord()
+            if idx.split(HYPHEN)[0] != serial:
+                return
+            self.row += 1
             for cell, key in zip(row[1:], self.keys):
-                 yield Cell(key, idx, cell.value)
-                
+                yield Cell(key, idx, cell.value)
+
 
 class Convert:
 
@@ -252,10 +267,19 @@ class FromExcel(Convert):
 
     
     def read(self):
-        pass
+        for i in itertools.count(1):
+            dic = {}
+            try:
+                for sheet in self.sheets:
+                    dic = {
+                        **dic,
+                        **{(cell.key, cell.idx): cell.value for cell in sheet.read(i)}
+                    }
+                    yield self.deserialize(dic)
+            except NoMoreRecord:
+                break
 
-
-
+        
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
     # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}

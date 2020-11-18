@@ -76,6 +76,7 @@ class ReadOnlySheet:
 
     def __init__(self, sheet):
         self.sheet = sheet
+        self.main_key = self.sheet.title.split(DOT)[0]
         self.keys = self.set_keys()
         self.max_col = len(self.keys) + 1
         self.max_row = self.sheet.max_row
@@ -92,14 +93,16 @@ class ReadOnlySheet:
        
 
     def read(self, serial):
-        min_row = self.row
-        if min_row > self.max_row:
+        if self.row > self.max_row:
             raise NoMoreRecord() 
+        min_row = self.row
         for row in self.sheet.iter_rows(
                 min_row=min_row, max_row = self.max_row, min_col=1, max_col=self.max_col):
-            idx = row[0].value
-            if self.is_empty(idx):
+            a_cell = row[0]
+            # when formatted cell is found out of data area
+            if self.is_empty(a_cell):
                 raise NoMoreRecord()
+            idx = a_cell.value
             if idx.split(HYPHEN)[0] != serial:
                 return
             self.row += 1
@@ -263,6 +266,8 @@ class FromExcel(Convert):
     def convert(self):
         wb = openpyxl.load_workbook(self.excel_file)
         self.set_sheets(wb)
+        for item in self.read():
+            print(item)
         wb.close()
 
     
@@ -273,9 +278,10 @@ class FromExcel(Convert):
                 for sheet in self.sheets:
                     dic = {
                         **dic,
-                        **{(cell.key, cell.idx): cell.value for cell in sheet.read(i)}
+                        **{(cell.key, cell.idx): cell.value for cell in sheet.read(str(i))}
                     }
-                    yield self.deserialize(dic)
+                yield self.deserialize(dic)
+            
             except NoMoreRecord:
                 break
 
@@ -293,7 +299,8 @@ if __name__ == '__main__':
     # print(to_excel.excel_file)
     # to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201111220522.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
     path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_dummy.xlsx"
     from_excel = FromExcel(path)
     from_excel.convert()

@@ -263,11 +263,14 @@ class FromExcel(Convert):
             in wb if sh.cell(row=2, column=1).value)
    
 
-    def convert(self):
+    def convert(self, indent=None):
         wb = openpyxl.load_workbook(self.excel_file)
         self.set_sheets(wb)
-        for item in self.read():
-            print(item)
+        self.output(
+            (record for record in self.read()),
+            indent,
+            self.get_file_path(self.excel_file, '.json')
+        )
         wb.close()
 
     
@@ -280,12 +283,22 @@ class FromExcel(Convert):
                         **dic,
                         **{(cell.key, cell.idx): cell.value for cell in sheet.read(str(i))}
                     }
-                yield self.deserialize(dic)
-            
+                yield self.deserialize(dic)         
             except NoMoreRecord:
                 break
+    
 
-        
+    def output(self, records, indent, json_file):
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(
+                list(records), 
+                f, 
+                ensure_ascii=False,
+                indent=indent
+            )
+
+
+
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
     # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
@@ -301,6 +314,5 @@ if __name__ == '__main__':
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
     path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_dummy.xlsx"
     from_excel = FromExcel(path)
     from_excel.convert()

@@ -34,10 +34,20 @@ Cell = namedtuple('Cell', 'key idx value')
 
 class ExcelSheet:
 
+    def __init__(self, sheet):
+        self.sheet = sheet
+
+
+    def set_keys(self, *args):
+        raise NotImplementedError()
+
+
+class WritingSheet(ExcelSheet):
+
     def __init__(self, sheet, keys, row=0, index=''):
+        super().__init__(sheet)
         self._row = row
         self._index = index
-        self.sheet = sheet
         self.set_keys(keys)
 
 
@@ -50,7 +60,7 @@ class ExcelSheet:
 
     def column(self, key):
         return self.keys[key]
-
+       
 
     def row(self, index):
         if self._index != index:
@@ -60,6 +70,7 @@ class ExcelSheet:
 
 
     def write(self, row, col, value, index=''):
+
         if index:
             self.sheet.write(row, 0, index)
         if not value:
@@ -72,10 +83,10 @@ class ExcelSheet:
             self.sheet.write_number(row, col, value)
 
 
-class ReadOnlySheet:
+class ReadingSheet(ExcelSheet):
 
     def __init__(self, sheet):
-        self.sheet = sheet
+        super().__init__(sheet)
         self.main_key = self.sheet.title.split(DOT)[0]
         self.keys = self.set_keys()
         self.max_col = len(self.keys) + 1
@@ -133,12 +144,14 @@ class Convert:
                         else:
                             yield from self.serialize({f'{pref}{key}{HYPHEN}{i}' : list_val}, idx)
                 else:
-                    yield Cell(f'{pref}{key}{DOT}{str(0)}', idx, val)
+                    yield Cell(f'{pref}{key}{HYPHEN}{str(0)}', idx, val)
             else:
                 yield f'{pref}{key}', idx, val
 
     
     def parse_json(self, dic, pref='', group=MAIN):
+        """Return a pair of sheet name and column name. 
+        """
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.parse_json(
@@ -200,6 +213,8 @@ class Convert:
 
 
 class ToExcel(Convert):
+    """Write data in json file to worksheets in Excel.
+    """
 
     def __init__(self, json_file):
         json_file = os.path.abspath(json_file)
@@ -227,8 +242,8 @@ class ToExcel(Convert):
     def set_sheets(self, wb):
         self.sheets = {}
         for _, sh_name in self.excel_format.items():
-            if sh_name not in self.sheets:  
-                self.sheets[sh_name] = ExcelSheet(
+            if sh_name not in self.sheets:
+                self.sheets[sh_name] = WritingSheet(
                     wb.add_worksheet(sh_name),
                     [key for key, val in self.excel_format.items() if val == sh_name]
                 )
@@ -252,6 +267,9 @@ class ToExcel(Convert):
 
 
 class FromExcel(Convert):
+    """Read data on worksheets in Excel to output to json file.
+       It is necessary to use Excel file created using ToExcel instance.
+    """
 
     def __init__(self, excel_file):
         self.excel_file = os.path.abspath(excel_file)
@@ -259,7 +277,7 @@ class FromExcel(Convert):
         
         
     def set_sheets(self, wb):
-        self.sheets = tuple(ReadOnlySheet(sh) for sh \
+        self.sheets = tuple(ReadingSheet(sh) for sh \
             in wb if sh.cell(row=2, column=1).value)
    
 
@@ -307,12 +325,12 @@ if __name__ == '__main__':
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
-    # to_excel = ToExcel('database.json')
+    to_excel = ToExcel('database.json')
     # to_excel = ToExcel('dict10.json')
     # print(to_excel.excel_file)
-    # to_excel.convert_all()
+    to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
-    from_excel = FromExcel(path)
-    from_excel.convert()
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
+    # from_excel = FromExcel(path)
+    # from_excel.convert()

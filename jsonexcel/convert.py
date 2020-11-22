@@ -58,9 +58,12 @@ class WritingSheet(ExcelSheet):
             self.write(0, col, key)
 
 
+    def add_column(self, key):
+        self.write(0, len(self.keys) + 1, key)
+
+
     def column(self, key):
-        return self.keys[key]
-       
+        return self.keys.get(key)
 
     def row(self, index):
         if self._index != index:
@@ -70,9 +73,10 @@ class WritingSheet(ExcelSheet):
 
 
     def write(self, row, col, value, index=''):
-
         if index:
             self.sheet.write(row, 0, index)
+        if not col:
+            pass
         if not value:
             self.sheet.write_blank(row, col, value)
         elif type(value) == bool:
@@ -122,6 +126,9 @@ class ReadingSheet(ExcelSheet):
 
 
 class Convert:
+    """A mixin class to provide functions to flatten or 
+       unflatten dict.
+    """
 
     def get_file_path(self, original_path, ext):
         suffix = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -131,6 +138,8 @@ class Convert:
 
 
     def serialize(self, dic, idx, pref=''):
+        """Flatten dict. 
+        """
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.serialize(val, 
@@ -150,7 +159,7 @@ class Convert:
 
     
     def parse_json(self, dic, pref='', group=MAIN):
-        """Return a pair of sheet name and column name. 
+        """Return a pair of sheet name and column name.
         """
         for key, val in dic.items():
             if isinstance(val, dict):
@@ -165,6 +174,8 @@ class Convert:
                         else:
                             yield from self.parse_json(
                                 {f'{pref}{key}{HYPHEN}{i}' : list_val}, group=group)
+                else:
+                    yield group, f'{pref}{key}{HYPHEN}{str(0)}'
             else:
                 yield group, f'{pref}{key}'
 
@@ -225,6 +236,8 @@ class ToExcel(Convert):
        
 
     def get_excel_format(self):
+        """Create dict {column name: sheet name}
+        """
         if not self.excel_format:
             for dic in self.json:
                 for group, key in self.parse_json(dic): 
@@ -240,16 +253,28 @@ class ToExcel(Convert):
 
 
     def set_sheets(self, wb):
+        """Create dict {sh_name: WritingSheet instance}
+           If a key is equal to sh_name directory connected to HYPHEN,
+           the key is empty object list.
+        """
         self.sheets = {}
-        for _, sh_name in self.excel_format.items():
+        # Change sh_name if key is sh_name directory connected to HYPHEN 
+        for sh_name in set(self.excel_format.values()):
+            for key in self.excel_format.keys():
+                if key == f'{sh_name}-0':
+                    self.excel_format[key] = sh_name
+        for sh_name in self.excel_format.values():
             if sh_name not in self.sheets:
                 self.sheets[sh_name] = WritingSheet(
                     wb.add_worksheet(sh_name),
-                    [key for key, val in self.excel_format.items() if val == sh_name]
+                    [key for key, val in self.excel_format.items() \
+                        if val == sh_name and key != f'{sh_name}-0']
                 )
-                            
 
+  
     def write(self, sh_name, cell):
+        """Get column and row numbers to write value to worksheet.
+        """
         sheet = self.sheets[sh_name]
         col = sheet.column(cell.key)
         row = sheet.row(cell.idx)
@@ -262,8 +287,7 @@ class ToExcel(Convert):
             for record in records:
                 for cell in record:
                     sh_name = self.excel_format.get(cell.key)
-                    if sh_name:
-                        self.write(sh_name, cell)
+                    self.write(sh_name, cell)
 
 
 class FromExcel(Convert):
@@ -316,7 +340,6 @@ class FromExcel(Convert):
             )
 
 
-
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
     # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
@@ -325,8 +348,9 @@ if __name__ == '__main__':
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
-    to_excel = ToExcel('database.json')
-    # to_excel = ToExcel('dict10.json')
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
+    # to_excel = ToExcel('database.json')
+    to_excel = ToExcel(path)
     # print(to_excel.excel_file)
     to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})

@@ -21,12 +21,26 @@ class ReadJson:
 
     def __init__(self, file):
         self.file = file
+        table = str.maketrans({HYPHEN: '_', DOT: '_'})
+        self._replace = lambda x: x.translate(table)
+       
+
+    def replace(self, obj, func):
+        """Replace '-' and '.' to '_', because they are used when
+           flatten and unflatten dict.
+        """
+        if isinstance(obj, dict):
+            return {func(key): self.replace(val, func) for key, val in obj.items()}
+        elif isinstance(obj, list):
+            return [self.replace(item, func) for item in obj]
+        else:
+            return obj
 
 
     def __iter__(self):
         with open(self.file, 'r', encoding='utf-8') as f:
             for dic in json.load(f):
-                yield dic
+                yield self.replace(dic, self._replace)
 
 
 Cell = namedtuple('Cell', 'key idx value')
@@ -348,9 +362,9 @@ if __name__ == '__main__':
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
-    # to_excel = ToExcel('database.json')
-    to_excel = ToExcel(path)
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
+    to_excel = ToExcel('database.json')
+    # to_excel = ToExcel(path)
     # print(to_excel.excel_file)
     to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})

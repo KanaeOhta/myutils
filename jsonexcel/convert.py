@@ -8,20 +8,14 @@ import openpyxl
 from xlsxwriter.workbook import Workbook
 
 
-DOT = '.'
-HYPHEN = '-'
-MAIN = 'main'
-
-
 class NoMoreRecord(Exception):
     pass
 
 
 class ReadJson:
 
-    def __init__(self, file):
+    def __init__(self, file, table):
         self.file = file
-        table = str.maketrans({HYPHEN: '_', DOT: '_'})
         self._replace = lambda x: x.translate(table)
        
 
@@ -47,6 +41,8 @@ Cell = namedtuple('Cell', 'key idx value')
 
 
 class ExcelSheet:
+
+    MAIN = 'main'
 
     def __init__(self, sheet):
         self.sheet = sheet
@@ -79,6 +75,7 @@ class WritingSheet(ExcelSheet):
     def column(self, key):
         return self.keys.get(key)
 
+
     def row(self, index):
         if self._index != index:
             self._index = index
@@ -105,23 +102,23 @@ class ReadingSheet(ExcelSheet):
 
     def __init__(self, sheet):
         super().__init__(sheet)
-        self.main_key = self.sheet.title.split(DOT)[0]
+        self.title = self.sheet.title
         self.keys = self.set_keys()
         self.max_col = len(self.keys) + 1
         self.max_row = self.sheet.max_row
         self.row = 2
   
 
-    def is_empty(self, cell):
-        return cell.value is None or not str(cell.value).strip()    
+    def is_empty(self, cell_value):
+        return cell_value is None or not str(cell_value).strip()    
     
 
     def set_keys(self):
         row = self.sheet[1]
-        return tuple(cell.value for cell in row if not self.is_empty(cell))
+        return tuple(cell.value for cell in row if not self.is_empty(cell.value))
        
 
-    def read(self, serial):
+    def read(self, serial, delimiter):
         if self.row > self.max_row:
             raise NoMoreRecord() 
         min_row = self.row
@@ -129,14 +126,22 @@ class ReadingSheet(ExcelSheet):
                 min_row=min_row, max_row = self.max_row, min_col=1, max_col=self.max_col):
             a_cell = row[0]
             # when formatted cell is found out of data area
-            if self.is_empty(a_cell):
+            if self.is_empty(a_cell.value):
                 raise NoMoreRecord()
             idx = a_cell.value
-            if idx.split(HYPHEN)[0] != serial:
+            if idx.split(delimiter)[0] != serial:
                 return
             self.row += 1
-            for cell, key in zip(row[1:], self.keys):
-                yield Cell(key, idx, cell.value)
+            record = {(key, idx): cell.value for cell, key in zip(row[1:], self.keys)}
+            # If all cells in a row are empty and sheet is Main, value is empty list.
+            if all(self.is_empty(val) for val in record.values()) and self.title != ExcelSheet.MAIN:
+                yield {(self.title, f'{idx}'): list()}
+            else:
+                yield record 
+
+
+DOT = '.'
+HYPHEN = '-'
 
 
 class Convert:
@@ -172,22 +177,22 @@ class Convert:
                 yield f'{pref}{key}', idx, val
 
     
-    def parse_json(self, dic, pref='', group=MAIN):
+    def parse_json(self, dic, group, pref=''):
         """Return a pair of sheet name and column name.
         """
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.parse_json(
-                    val, f'{pref}{key}{DOT}', group)
+                    val, group, f'{pref}{key}{DOT}')
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.parse_json(
-                                list_val, f'{pref}{key}{DOT}', f'{pref}{key}')
+                                list_val, f'{pref}{key}', f'{pref}{key}{DOT}')
                         else:
                             yield from self.parse_json(
-                                {f'{pref}{key}{HYPHEN}{i}' : list_val}, group=group)
+                                {f'{pref}{key}{HYPHEN}{i}' : list_val}, group)
                 else:
                     yield group, f'{pref}{key}{HYPHEN}{str(0)}'
             else:
@@ -207,9 +212,9 @@ class Convert:
 
 
     def _deserialize(self, new_dic, keys, idxes, val):
-        if not idxes:
+        if not idxes: # No HYPHEN means the first level
             if len(keys) == 1:
-                if HYPHEN in keys[0]:
+                if HYPHEN in keys[0]: # Value is list
                     temp_keys = keys[0].split(HYPHEN)
                     self.set_container_to_dict(new_dic, temp_keys[0], list)
                     if val:
@@ -232,7 +237,7 @@ class Convert:
         new_dic = {}
         for (key_str, idx_str), val in dic.items():
             keys =key_str.split(DOT)
-            idxes = [int (idx) for idx in idx_str.split(HYPHEN)]
+            idxes = [int(idx) for idx in idx_str.split(HYPHEN)]
             self._deserialize(new_dic, keys, idxes[1:], val)
         return new_dic
 
@@ -244,7 +249,8 @@ class ToExcel(Convert):
     def __init__(self, json_file):
         json_file = os.path.abspath(json_file)
         self.excel_file = self.get_file_path(json_file, '.xlsx')
-        self.json = ReadJson(json_file)
+        table = str.maketrans({HYPHEN: '_', DOT: '_'})
+        self.json = ReadJson(json_file, table)
         self.excel_format = {}
         self.sheets = None
        
@@ -254,7 +260,7 @@ class ToExcel(Convert):
         """
         if not self.excel_format:
             for dic in self.json:
-                for group, key in self.parse_json(dic): 
+                for group, key in self.parse_json(dic, group=ExcelSheet.MAIN):  
                     if key not in self.excel_format.keys():
                         self.excel_format[key] = group
 
@@ -335,10 +341,8 @@ class FromExcel(Convert):
             dic = {}
             try:
                 for sheet in self.sheets:
-                    dic = {
-                        **dic,
-                        **{(cell.key, cell.idx): cell.value for cell in sheet.read(str(i))}
-                    }
+                    for record in sheet.read(str(i), HYPHEN):
+                        dic = {**dic, **record}
                 yield self.deserialize(dic)         
             except NoMoreRecord:
                 break
@@ -362,13 +366,13 @@ if __name__ == '__main__':
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
 
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test6.json"
     to_excel = ToExcel('database.json')
     # to_excel = ToExcel(path)
     # print(to_excel.excel_file)
     to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\dict10_20201116220255.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test2_20201122205815.xlsx"
     # from_excel = FromExcel(path)
     # from_excel.convert()

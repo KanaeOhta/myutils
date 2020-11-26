@@ -1,8 +1,10 @@
 from collections import namedtuple
 from datetime import datetime
+import errno
 import itertools
 import json
 import os
+import re
 
 import openpyxl
 from xlsxwriter.workbook import Workbook
@@ -54,10 +56,14 @@ class ExcelSheet:
 
 class WritingSheet(ExcelSheet):
 
+    URL = r"(https?|ftp)(:\/\/[-_\.!~*\'()a-zA-Z0-9;\/?:\@&=\+$,%#]+)"
+
+
     def __init__(self, sheet, keys, row=0, index=''):
         super().__init__(sheet)
         self._row = row
         self._index = index
+        self.pattern = re.compile(WritingSheet.URL)
         self.set_keys(keys)
 
 
@@ -66,10 +72,6 @@ class WritingSheet(ExcelSheet):
         for col, key in enumerate(keys, 1):
             self.keys[key] = col
             self.write(0, col, key)
-
-
-    def add_column(self, key):
-        self.write(0, len(self.keys) + 1, key)
 
 
     def column(self, key):
@@ -92,10 +94,14 @@ class WritingSheet(ExcelSheet):
             self.sheet.write_blank(row, col, value)
         elif type(value) == bool:
             self.sheet.write_boolean(row, col, value)
+        elif type(value) in {int, float}:
+            self.sheet.write_number(row, col, value)
+        elif self.pattern.match(value):
+            self.sheet.write_url(row, col, value)
         elif isinstance(value, str):
             self.sheet.write_string(row, col, value)
         else:
-            self.sheet.write_number(row, col, value)
+            self.sheet.write(row, col, value)
 
 
 class ReadingSheet(ExcelSheet):
@@ -140,19 +146,24 @@ class ReadingSheet(ExcelSheet):
                 yield record 
 
 
-DOT = '.'
-HYPHEN = '-'
+def file_check(path):
+    if not os.path.isfile(path):
+        raise FileNotFoundError(
+            errno.ENOENT, os.strerror(errno.ENOENT), path)
 
 
 class Convert:
     """A mixin class to provide functions to flatten or 
        unflatten dict.
+       DOT and HYPEN are immutable. Can be accessed with self.
     """
+    DOT = '.'
+    HYPHEN = '-'
 
     def get_file_path(self, original_path, ext):
-        suffix = datetime.now().strftime('%Y%m%d%H%M%S')
+        str_date = datetime.now().strftime('%Y%m%d%H%M%S')
         path = '{}_{}{}'.format(os.path.splitext(original_path)[0],
-            suffix, ext)
+            str_date, ext)
         return path
 
 
@@ -162,17 +173,17 @@ class Convert:
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.serialize(val, 
-                    idx, f'{pref}{key}{DOT}')
+                    idx, f'{pref}{key}{self.DOT}')
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.serialize(list_val, 
-                                f'{idx}{HYPHEN}{i}', f'{pref}{key}{DOT}')
+                                f'{idx}{self.HYPHEN}{i}', f'{pref}{key}{self.DOT}')
                         else:
-                            yield from self.serialize({f'{pref}{key}{HYPHEN}{i}' : list_val}, idx)
+                            yield from self.serialize({f'{pref}{key}{self.HYPHEN}{i}' : list_val}, idx)
                 else:
-                    yield Cell(f'{pref}{key}{HYPHEN}{str(0)}', idx, val)
+                    yield Cell(f'{pref}{key}{self.HYPHEN}{str(0)}', idx, val)
             else:
                 yield f'{pref}{key}', idx, val
 
@@ -183,40 +194,44 @@ class Convert:
         for key, val in dic.items():
             if isinstance(val, dict):
                 yield from self.parse_json(
-                    val, group, f'{pref}{key}{DOT}')
+                    val, group, f'{pref}{key}{self.DOT}')
             elif isinstance(val, list):
                 if val:
                     for i, list_val in enumerate(val):
                         if isinstance(list_val, dict):
                             yield from self.parse_json(
-                                list_val, f'{pref}{key}', f'{pref}{key}{DOT}')
+                                list_val, f'{pref}{key}', f'{pref}{key}{self.DOT}')
                         else:
                             yield from self.parse_json(
-                                {f'{pref}{key}{HYPHEN}{i}' : list_val}, group)
+                                {f'{pref}{key}{self.HYPHEN}{i}' : list_val}, group)
                 else:
-                    yield group, f'{pref}{key}{HYPHEN}{str(0)}'
+                    yield group, f'{pref}{key}{self.HYPHEN}{str(0)}'
             else:
                 yield group, f'{pref}{key}'
 
 
-    def set_container_to_list(self, li, idx, container):
+    def set_obj_to_list(self, li, idx, obj):
+        """obj must be list or dict.
+        """
         try:
             li[idx]
         except IndexError:
-            li.append(container())
+            li.append(obj())
 
 
-    def set_container_to_dict(self, dic, key, container):
+    def set_obj_to_dict(self, dic, key, obj):
+        """obj must be list or dict.
+        """
         if key not in dic:
-            dic[key] = container()
+            dic[key] = obj()
 
 
     def _deserialize(self, new_dic, keys, idxes, val):
         if not idxes: # No HYPHEN means the first level
             if len(keys) == 1:
-                if HYPHEN in keys[0]: # Value is list
-                    temp_keys = keys[0].split(HYPHEN)
-                    self.set_container_to_dict(new_dic, temp_keys[0], list)
+                if self.HYPHEN in keys[0]: # Value is list
+                    temp_keys = keys[0].split(self.HYPHEN)
+                    self.set_obj_to_dict(new_dic, temp_keys[0], list)
                     if val:
                         li = new_dic[temp_keys[0]]
                         li.append(val)
@@ -224,20 +239,20 @@ class Convert:
                 new_dic[keys[0]] = val
                 return
             else:
-                self.set_container_to_dict(new_dic, keys[0], dict)
+                self.set_obj_to_dict(new_dic, keys[0], dict)
                 self._deserialize(new_dic[keys[0]], keys[1:], idxes, val)
         else:
-            self.set_container_to_dict(new_dic, keys[0], list)
+            self.set_obj_to_dict(new_dic, keys[0], list)
             li = new_dic[keys[0]]
-            self.set_container_to_list(li, idxes[0], dict)
+            self.set_obj_to_list(li, idxes[0], dict)
             self._deserialize(li[idxes[0]], keys[1:], idxes[1:], val)
        
 
     def deserialize(self, dic):
         new_dic = {}
         for (key_str, idx_str), val in dic.items():
-            keys =key_str.split(DOT)
-            idxes = [int(idx) for idx in idx_str.split(HYPHEN)]
+            keys =key_str.split(self.DOT)
+            idxes = [int(idx) for idx in idx_str.split(self.HYPHEN)]
             self._deserialize(new_dic, keys, idxes[1:], val)
         return new_dic
 
@@ -248,8 +263,9 @@ class ToExcel(Convert):
 
     def __init__(self, json_file):
         json_file = os.path.abspath(json_file)
+        file_check(json_file)
         self.excel_file = self.get_file_path(json_file, '.xlsx')
-        table = str.maketrans({HYPHEN: '_', DOT: '_'})
+        table = str.maketrans({self.HYPHEN: '_', self.DOT: '_'})
         self.json = ReadJson(json_file, table)
         self.excel_format = {}
         self.sheets = None
@@ -317,6 +333,7 @@ class FromExcel(Convert):
 
     def __init__(self, excel_file):
         self.excel_file = os.path.abspath(excel_file)
+        file_check(self.excel_file)
         self.sheets = None
         
         
@@ -341,7 +358,7 @@ class FromExcel(Convert):
             dic = {}
             try:
                 for sheet in self.sheets:
-                    for record in sheet.read(str(i), HYPHEN):
+                    for record in sheet.read(str(i), self.HYPHEN):
                         dic = {**dic, **record}
                 yield self.deserialize(dic)         
             except NoMoreRecord:
@@ -365,14 +382,16 @@ if __name__ == '__main__':
     # test_dic4 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[1, 2, 3], [4, 5, 6]]}
     # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
-
+    import time
+    start = time.time()
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test6.json"
-    to_excel = ToExcel('database.json')
+    # to_excel = ToExcel('database.json')
     # to_excel = ToExcel(path)
     # print(to_excel.excel_file)
-    to_excel.convert_all()
+    # to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test2_20201122205815.xlsx"
-    # from_excel = FromExcel(path)
-    # from_excel.convert()
+    from_excel = FromExcel(path)
+    from_excel.convert()
+    print(f'It took {time.time() - start} seconds')

@@ -65,7 +65,7 @@ class WritingSheet(ExcelSheet):
         self._index = index
         self.pattern = re.compile(WritingSheet.URL)
         self.set_keys(keys)
-
+    
 
     def set_keys(self, keys):
         self.keys = {}
@@ -90,19 +90,19 @@ class WritingSheet(ExcelSheet):
             self.sheet.write(row, 0, index)
         if not col:
             pass
-        if not value:
+        if type(value) in {float, int}:
+            self.sheet.write_number(row, col, value)
+        elif isinstance(value, list) or value is None:
             self.sheet.write_blank(row, col, value)
         elif type(value) == bool:
             self.sheet.write_boolean(row, col, value)
-        elif type(value) in {int, float}:
-            self.sheet.write_number(row, col, value)
         elif self.pattern.match(value):
             self.sheet.write_url(row, col, value)
         elif isinstance(value, str):
             self.sheet.write_string(row, col, value)
         else:
             self.sheet.write(row, col, value)
-
+       
 
 class ReadingSheet(ExcelSheet):
 
@@ -138,7 +138,8 @@ class ReadingSheet(ExcelSheet):
             if idx.split(delimiter)[0] != serial:
                 return
             self.row += 1
-            record = {(key, idx): cell.value for cell, key in zip(row[1:], self.keys)}
+            record = {(key, idx): cell.value or '' \
+                for cell, key in zip(row[1:], self.keys)}
             # If all cells in a row are empty and sheet is Main, value is empty list.
             if all(self.is_empty(val) for val in record.values()) and self.title != ExcelSheet.MAIN:
                 yield {(self.title, f'{idx}'): list()}
@@ -267,22 +268,22 @@ class ToExcel(Convert):
         self.excel_file = self.get_file_path(json_file, '.xlsx')
         table = str.maketrans({self.HYPHEN: '_', self.DOT: '_'})
         self.json = ReadJson(json_file, table)
-        self.excel_format = {}
+        self.sheet_format = {}
         self.sheets = None
        
 
-    def get_excel_format(self):
-        """Create dict {column name: sheet name}
+    def get_sheet_format(self):
+        """Create dict {column name: Column namedtuple}
         """
-        if not self.excel_format:
+        if not self.sheet_format:
             for dic in self.json:
-                for group, key in self.parse_json(dic, group=ExcelSheet.MAIN):  
-                    if key not in self.excel_format.keys():
-                        self.excel_format[key] = group
-
+                for group, key in self.parse_json(dic, group=ExcelSheet.MAIN): 
+                    if key not in self.sheet_format.keys():
+                        self.sheet_format[key] = group
+    
 
     def convert_all(self):
-        self.get_excel_format()
+        self.get_sheet_format()
         records = ((Cell(key, idx, val) for key, idx, val in self.serialize(dic, str(i))) \
             for i, dic in enumerate(self.json, 1))
         self.output(records)
@@ -294,17 +295,17 @@ class ToExcel(Convert):
            the key is empty object list.
         """
         self.sheets = {}
-        # Change sh_name if key is sh_name directory connected to HYPHEN 
-        for sh_name in set(self.excel_format.values()):
-            for key in self.excel_format.keys():
+        # Change sh_name if key is sh_name connected to directory HYPHEN 
+        for sh_name in set(self.sheet_format.values()):
+            for key in self.sheet_format.keys():
                 if key == f'{sh_name}-0':
-                    self.excel_format[key] = sh_name
-        for sh_name in self.excel_format.values():
+                    self.sheet_format[key] = sh_name
+        for sh_name in self.sheet_format.values():
             if sh_name not in self.sheets:
                 self.sheets[sh_name] = WritingSheet(
                     wb.add_worksheet(sh_name),
-                    [key for key, val in self.excel_format.items() \
-                        if val == sh_name and key != f'{sh_name}-0']
+                    sorted(key for key, val in self.sheet_format.items() \
+                        if val == sh_name and key != f'{sh_name}-0')
                 )
 
   
@@ -322,7 +323,7 @@ class ToExcel(Convert):
             self.set_sheets(wb)
             for record in records:
                 for cell in record:
-                    sh_name = self.excel_format.get(cell.key)
+                    sh_name = self.sheet_format.get(cell.key)
                     self.write(sh_name, cell)
 
 
@@ -385,13 +386,14 @@ if __name__ == '__main__':
     import time
     start = time.time()
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test6.json"
-    # to_excel = ToExcel('database.json')
+    to_excel = ToExcel('database.json')
     # to_excel = ToExcel(path)
     # print(to_excel.excel_file)
-    # to_excel.convert_all()
+    to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201114203603.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test2_20201122205815.xlsx"
-    from_excel = FromExcel(path)
-    from_excel.convert()
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201127104049.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test4_20201122210511.xlsx"
+    # from_excel = FromExcel(path)
+    # from_excel = FromExcel('database_20201127104049.xlsx')
+    # from_excel.convert()
     print(f'It took {time.time() - start} seconds')

@@ -93,13 +93,13 @@ class WritingSheet(ExcelSheet):
         if type(value) in {float, int}:
             self.sheet.write_number(row, col, value)
         elif isinstance(value, list) or value is None:
-            self.sheet.write_blank(row, col, value)
+            self.sheet.write_blank(row, col, None)
         elif type(value) == bool:
             self.sheet.write_boolean(row, col, value)
         elif self.pattern.match(value):
             self.sheet.write_url(row, col, value)
         elif isinstance(value, str):
-            self.sheet.write_string(row, col, value)
+            self.sheet.write_string(row, col, str(value))
         else:
             self.sheet.write(row, col, value)
        
@@ -112,6 +112,7 @@ class ReadingSheet(ExcelSheet):
         self.keys = self.set_keys()
         self.max_col = len(self.keys) + 1
         self.max_row = self.sheet.max_row
+        self.data_types = tuple(data_type for data_type in self.get_type())
         self.row = 2
   
 
@@ -122,9 +123,32 @@ class ReadingSheet(ExcelSheet):
     def set_keys(self):
         row = self.sheet[1]
         return tuple(cell.value for cell in row if not self.is_empty(cell.value))
-       
+
+
+    def get_type(self):
+        for col in self.sheet.iter_cols(
+                min_row=2, max_row=self.max_row, min_col=2, max_col=self.max_col):
+            data_type = None  
+            for cell in col:
+                if not self.is_empty(cell.value):
+                    data_type = type(cell.value)
+                    # 0.0 is entered into cell as 0.   
+                    if data_type != int:
+                        break
+            yield data_type
+
+
+    def _read(self, cells):
+        for cell, key, data_type in zip(cells, self.keys, self.data_types):
+            if not self.is_empty(val := cell.value):
+                val = data_type(val)
+            yield key, val
+
 
     def read(self, serial, delimiter):
+        """If Rows have the same left number of Indexes(column A) split with hyphen,
+           they are on record. For example, 1, 1-1, 1-2, 1-1-1, 1-1-2.   
+        """
         if self.row > self.max_row:
             raise NoMoreRecord() 
         min_row = self.row
@@ -138,8 +162,7 @@ class ReadingSheet(ExcelSheet):
             if idx.split(delimiter)[0] != serial:
                 return
             self.row += 1
-            record = {(key, idx): cell.value or '' \
-                for cell, key in zip(row[1:], self.keys)}
+            record = {(key, idx): val for key, val in self._read(row[1:])}
             # If all cells in a row are empty and sheet is Main, value is empty list.
             if all(self.is_empty(val) for val in record.values()) and self.title != ExcelSheet.MAIN:
                 yield {(self.title, f'{idx}'): list()}
@@ -385,15 +408,15 @@ if __name__ == '__main__':
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
     import time
     start = time.time()
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test6.json"
-    to_excel = ToExcel('database.json')
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\value_test.json"
+    # to_excel = ToExcel('database.json')
     # to_excel = ToExcel(path)
     # print(to_excel.excel_file)
-    to_excel.convert_all()
+    # to_excel.convert_all()
     # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201127104049.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test4_20201122210511.xlsx"
-    # from_excel = FromExcel(path)
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201128001326.xlsx"
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\value_test_20201128231125.xlsx"
+    from_excel = FromExcel(path)
     # from_excel = FromExcel('database_20201127104049.xlsx')
-    # from_excel.convert()
+    from_excel.convert()
     print(f'It took {time.time() - start} seconds')

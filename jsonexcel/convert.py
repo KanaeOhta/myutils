@@ -14,29 +14,26 @@ class NoMoreRecord(Exception):
     pass
 
 
-class ReadJson:
+class JsonFile:
 
-    def __init__(self, file, table):
+    def __init__(self, file):
         self.file = file
-        self._replace = lambda x: x.translate(table)
-       
-
-    def replace(self, obj, func):
-        """Replace '-' and '.' to '_', because they are used when
-           flatten and unflatten dict.
-        """
-        if isinstance(obj, dict):
-            return {func(key): self.replace(val, func) for key, val in obj.items()}
-        elif isinstance(obj, list):
-            return [self.replace(item, func) for item in obj]
-        else:
-            return obj
 
 
     def __iter__(self):
         with open(self.file, 'r', encoding='utf-8') as f:
             for dic in json.load(f):
-                yield self.replace(dic, self._replace)
+                yield dic
+
+
+    def output(self, records, indent):
+        with open(self.file, 'w', encoding='utf-8') as f:
+            json.dump(
+                list(records), 
+                f, 
+                ensure_ascii=False,
+                indent=indent
+            )
 
 
 Cell = namedtuple('Cell', 'key idx value')
@@ -99,7 +96,7 @@ class WritingSheet(ExcelSheet):
         elif self.pattern.match(value):
             self.sheet.write_url(row, col, value)
         elif isinstance(value, str):
-            self.sheet.write_string(row, col, str(value))
+            self.sheet.write_string(row, col, value)
         else:
             self.sheet.write(row, col, value)
        
@@ -281,6 +278,23 @@ class Convert:
         return new_dic
 
 
+    def replace(self, obj):
+        """key or specific characters in key are replaced. 
+        """
+        if isinstance(obj, dict):
+            return {self._replace(key): self.replace(val) for key, val in obj.items()}
+        elif isinstance(obj, list):
+            return [self.replace(item) for item in obj]
+        else:
+            return obj
+
+
+    def set_replace_table(self, replacement):
+        """Override in subclasses to use replace method.
+        """
+        raise NotImplementedError()
+
+
 class ToExcel(Convert):
     """Write data in json file to worksheets in Excel.
     """
@@ -288,27 +302,37 @@ class ToExcel(Convert):
     def __init__(self, json_file):
         json_file = os.path.abspath(json_file)
         file_check(json_file)
-        self.excel_file = self.get_file_path(json_file, '.xlsx')
-        table = str.maketrans({self.HYPHEN: '_', self.DOT: '_'})
-        self.json = ReadJson(json_file, table)
+        self.json = JsonFile(json_file)
+        self.set_replace_table(
+            {self.HYPHEN: '_', self.DOT: '_'})
         self.sheet_format = {}
         self.sheets = None
        
 
+    def set_replace_table(self, replacement): 
+        table = str.maketrans(replacement)
+        self._replace = lambda x: x.translate(table)
+    
+    
     def get_sheet_format(self):
         """Create dict {column name: Column namedtuple}
         """
         if not self.sheet_format:
             for dic in self.json:
-                for group, key in self.parse_json(dic, group=ExcelSheet.MAIN): 
+                for group, key in self.parse_json(self.replace(dic), group=ExcelSheet.MAIN): 
                     if key not in self.sheet_format.keys():
                         self.sheet_format[key] = group
-    
 
-    def convert_all(self):
+
+    def get_records(self):
+        for i, dic in enumerate(self.json, 1):
+            yield (Cell(key, idx, val) for key, idx, val \
+                in self.serialize(self.replace(dic), str(i)))
+
+
+    def convert(self):
         self.get_sheet_format()
-        records = ((Cell(key, idx, val) for key, idx, val in self.serialize(dic, str(i))) \
-            for i, dic in enumerate(self.json, 1))
+        records = (record for record in self.get_records())
         self.output(records)
 
 
@@ -342,7 +366,8 @@ class ToExcel(Convert):
 
 
     def output(self, records):
-        with Workbook(self.excel_file) as wb:
+        excel_file = self.get_file_path(self.json.file, '.xlsx')
+        with Workbook(excel_file) as wb:
             self.set_sheets(wb)
             for record in records:
                 for cell in record:
@@ -356,8 +381,9 @@ class FromExcel(Convert):
     """
 
     def __init__(self, excel_file):
-        self.excel_file = os.path.abspath(excel_file)
-        file_check(self.excel_file)
+        excel_file = os.path.abspath(excel_file)
+        file_check(excel_file)
+        self.excel_file = excel_file
         self.sheets = None
         
         
@@ -366,14 +392,19 @@ class FromExcel(Convert):
             in wb if sh.cell(row=2, column=1).value)
    
 
-    def convert(self, indent=None):
+    def set_replace_table(self, replacement): 
+        self._replace = lambda x: replacement[x] if x in replacement else x
+
+
+    def convert(self, indent=None, replacement=None):
         wb = openpyxl.load_workbook(self.excel_file)
         self.set_sheets(wb)
-        self.output(
-            (record for record in self.read()),
-            indent,
-            self.get_file_path(self.excel_file, '.json')
-        )
+        if replacement:
+            self.set_replace_table(replacement)
+            records = (self.replace(record) for record in self.read())
+        else:
+            records = (record for record in self.read())
+        self.output(records, indent)
         wb.close()
 
     
@@ -387,17 +418,13 @@ class FromExcel(Convert):
                 yield self.deserialize(dic)         
             except NoMoreRecord:
                 break
+
+
+    def output(self, records, indent):
+        json_file = JsonFile(
+            self.get_file_path(self.excel_file, '.json')) 
+        json_file.output(records, indent)
     
-
-    def output(self, records, indent, json_file):
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(
-                list(records), 
-                f, 
-                ensure_ascii=False,
-                indent=indent
-            )
-
 
 if __name__ == '__main__':
     # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
@@ -408,15 +435,15 @@ if __name__ == '__main__':
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
     import time
     start = time.time()
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\value_test.json"
+    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
     # to_excel = ToExcel('database.json')
-    # to_excel = ToExcel(path)
-    # print(to_excel.excel_file)
-    # to_excel.convert_all()
+    to_excel = ToExcel(path)
+    to_excel.convert()
     # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201128001326.xlsx"
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\value_test_20201128231125.xlsx"
-    from_excel = FromExcel(path)
-    # from_excel = FromExcel('database_20201127104049.xlsx')
-    from_excel.convert()
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201129223336.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\value_test_20201129225755.xlsx"
+    # from_excel = FromExcel(path)
+    # from_excel.convert(replacement={
+        # 'c_c': 'c-c', 'a_b': 'a.b', 'b_c': 'b.c', 'x_d': 'x-d', 'y_d': 'y-d', 'd_f': 'd-f'})
+    # from_excel.convert()
     print(f'It took {time.time() - start} seconds')

@@ -204,7 +204,7 @@ class Convert:
                         else:
                             yield from self.serialize({f'{pref}{key}{self.HYPHEN}{i}' : list_val}, idx)
                 else:
-                    yield Cell(f'{pref}{key}{self.HYPHEN}{str(0)}', idx, val)
+                    yield f'{pref}{key}{self.HYPHEN}{str(0)}', idx, val
             else:
                 yield f'{pref}{key}', idx, val
 
@@ -314,7 +314,7 @@ class ToExcel(Convert):
         self._replace = lambda x: x.translate(table)
     
     
-    def get_sheet_format(self):
+    def set_sheet_format(self):
         """Create dict {column name: Column namedtuple}
         """
         if not self.sheet_format:
@@ -324,6 +324,21 @@ class ToExcel(Convert):
                         self.sheet_format[key] = group
 
 
+    def get_selected_records(self, keys):
+        for i, dic in enumerate(self.json, 1):
+            yield (Cell(key, idx, val) for key, idx, val \
+                in self.serialize(self.replace(dic), str(i)) if key in keys)
+
+
+    def partial_convert(self, *keys):
+        self.set_sheet_format()
+        self.sheet_format = {key: val for key, val \
+            in self.sheet_format.items() if key in keys}
+        records = (record for record in self.get_selected_records(keys))
+        self.output(records)
+        self.sheet_format = {}
+
+
     def get_records(self):
         for i, dic in enumerate(self.json, 1):
             yield (Cell(key, idx, val) for key, idx, val \
@@ -331,9 +346,10 @@ class ToExcel(Convert):
 
 
     def convert(self):
-        self.get_sheet_format()
+        self.set_sheet_format()
         records = (record for record in self.get_records())
         self.output(records)
+        self.sheet_format = {}
 
 
     def set_sheets(self, wb):
@@ -435,9 +451,10 @@ if __name__ == '__main__':
     # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
     import time
     start = time.time()
-    path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
-    # to_excel = ToExcel('database.json')
-    to_excel = ToExcel(path)
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\test_data\test5.json"
+    to_excel = ToExcel('database.json')
+    # to_excel = ToExcel(path)
+    # to_excel.partial_convert('description', 'nutrients.description', 'nutrients.value')
     to_excel.convert()
     # print({k : v for k, v in converter.serialize(test_dic3)})
     # path = r"C:\Users\kanae\OneDrive\myDevelopment\JsonExcel\database_20201129223336.xlsx"

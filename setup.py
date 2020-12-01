@@ -1,18 +1,20 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='myutils',
-    version='0.0.2',
+    name='jsonexel',
+    version='0.0.1',
     author='Kanae Ohta',
-    author_email='example@example.com',
-    url='https://github.com/KanaeOhta/myutils.git',
-    descriptions='python scripts',
-    long_description='',
+    author_email='kanae5321@gmail.com',
+    url='https://github.com/taKana671/JsonExcel.git',
+    descriptions='Export JSON-format data to Excel file or data in Excel file to JSON file.',
+    long_description='README',
+    long_description_content_type="text/markdown",
     packages=find_packages(),
+    include_package_data=True,
     classifiers=[
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7'
+    python_requires='>=3.8'
 )

@@ -15,3 +15,4 @@ Export JSON-format data to Excel file or data in Excel file to JSON file.
 * Windows10
 
 
+# Usage

@@ -13,5 +13,5 @@ Export JSON-format data to Excel file or data in Excel file to JSON file.
 # Environment
 
 * Windows10
-* Excel 2016
+
 

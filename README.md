@@ -1,6 +1,6 @@
 # JsonExcel
 
-Export JSON-format data to Excel file or data in Excel file to JSON file.
+Export JSON-format data to Excel like RDB or the exported data in Excel to JSON file.
 
 
 # Requirements

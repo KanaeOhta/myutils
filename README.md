@@ -17,7 +17,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 
 # Usage
 
- *class* ToExcel(path)
+ ### *class* ToExcel(path)
  
   * Export JSON-format data to Excel like RDB
   
@@ -31,7 +31,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
                                                               #    column name is like 'aa' or 'bb.cc'. 
   ```
   
-  *class* FromExcel(path)
+  ### *class* FromExcel(path)
   
    * Exported data in Excel to JSON file. 
    * The Excel must be the file output with convert method of ToExcel class.  

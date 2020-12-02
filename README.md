@@ -33,6 +33,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   *class* FromExcel(path)
   
    * Exported data in Excel to JSON file. 
+   * The Excel must be the file output with convert method of ToExcel class.  
    
    ```bash
    from jsonexcel import FromExcel
@@ -45,5 +46,9 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
     )
    
    ```
+   
+   
+  # Note
   
+   * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.     
   

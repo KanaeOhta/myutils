@@ -123,6 +123,8 @@ class ReadingSheet(ExcelSheet):
 
 
     def get_type(self):
+        """For each column, yield data type.
+        """
         for col in self.sheet.iter_cols(
                 min_row=2, max_row=self.max_row, min_col=2, max_col=self.max_col):
             data_type = None  
@@ -139,6 +141,9 @@ class ReadingSheet(ExcelSheet):
         for cell, key, data_type in zip(cells, self.keys, self.data_types):
             if not self.is_empty(val := cell.value):
                 val = data_type(val)
+                if data_type == str:
+                    # Convert _x000D_ to \r
+                    val = openpyxl.utils.escape.unescape(val)
             yield key, val
 
 

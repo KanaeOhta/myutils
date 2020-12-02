@@ -3,6 +3,10 @@
 Export JSON-format data to Excel like RDB or the exported data in Excel to JSON file.
 
 
+
+![data](https://user-images.githubusercontent.com/48859041/100882111-24db1680-34f2-11eb-9fac-dc062ac61e55.png)
+
+
 # Requirements
 
 * Python 3.8

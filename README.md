@@ -40,7 +40,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    
    from_excel = FromExcel(path)                               # path: Excel file path
    from_excel.convert()                                       # Export data to JSON file
-   from_excel(
+   from_excel.convert(
        indent=4,                                              # If you need indent on JSON file, specify number.
        replacement={'name': 'my_name, 'age': 'my_age'}        # If you need to change key name, specify dict({key before: key after, ...})
     )
@@ -50,5 +50,6 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    
   # Note
   
-   * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.     
+   * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.
+   * When exporting data in Excel to JSON file, specify replacement if you want to change keys in which hyphens or dots were replaced with underbar.
   

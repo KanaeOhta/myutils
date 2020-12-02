@@ -16,3 +16,10 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 
 
 # Usage
+
+ class ToExcel(path)
+ 
+  Export JSON-format data to Excel like RDB
+  args:
+      path: JSON file path
+  

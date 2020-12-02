@@ -20,10 +20,14 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
  *class* ToExcel(path)
  
   * Export JSON-format data to Excel like RDB
-  * args:
-    * path: JSON file path
   
-  - convert()
-  - partial_convert(*keys)
+  ```bash
+  from jsonexcel import ToExcel
+  
+  to_excel = ToExcel(path) # path: JSON file path
+  to_excel.convert() # When export all data
+  to_excel.partial_convert(column name 1, column name 2, ...) # When export selected data
+
+  ```
   
   

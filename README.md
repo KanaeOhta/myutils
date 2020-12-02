@@ -27,11 +27,8 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   to_excel = ToExcel(path)                                    # path: JSON file path
   to_excel.convert()                                          # When export all data
   to_excel.partial_convert(column name 1, column name 2, ...) # When export selected data
-  
-    * Specify column name as below.
-      
-      json_data = {'aa': 1, 'bb': {'cc': 2, 'dd': [1, 2, 3, 4]}} 
-        => to_excel.partial_convert('aa', 'bb.cc') 
+                                                              # if json_data is {'aa': 1, 'bb': {'cc': 2, 'dd': [1, 2, 3, 4]}},  
+                                                              #    column name is like 'aa' or 'bb.cc'. 
   ```
   
   *class* FromExcel(path)

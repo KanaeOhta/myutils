@@ -44,8 +44,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    from_excel.convert(
        indent=4,                                              # If you need indent on JSON file, specify number.
        replacement={'name': 'my_name, 'age': 'my_age'}        # If you need to change key name, specify dict({key before: key after, ...})
-    )                                                         #   'key before' means a key in the first row of the Excel file.
-   
+    )                                                        
    ```
    
    

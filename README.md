@@ -30,4 +30,20 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 
   ```
   
+  *class* FromExcel(path)
+  
+   * Exported data in Excel to JSON file. 
+   
+   ```bash
+   from jsonexcel import FromExcel
+   
+   from_excel = FromExcel(path)                               # path: Excel file path
+   from_excel.convert()                                       # Export data to JSON file
+   from_excel(
+       indent=4,                                              # If you need indent on JSON file, specify number.
+       replacement={'name': 'my_name, 'age': 'my_age'}        # If you need to change key name, specify dict({key before: key after, ...})
+    )
+   
+   ```
+  
   

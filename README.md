@@ -3,7 +3,7 @@
 Export JSON-format data to Excel like RDB or the exported data in Excel to JSON file.
 
 
-![spec](https://user-images.githubusercontent.com/48859041/101016231-d4c08a80-35ab-11eb-81b5-172cea74f5a1.png)
+![spec](https://user-images.githubusercontent.com/48859041/101022701-143fa480-35b5-11eb-8986-84793c52ab24.png)
 
 
 # Requirements

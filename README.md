@@ -7,6 +7,9 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 ![data](https://user-images.githubusercontent.com/48859041/100883734-04ac5700-34f4-11eb-9927-8f3a0a2e097c.png)
 
 
+![spec](https://user-images.githubusercontent.com/48859041/101014835-d25d3100-35a9-11eb-832d-9733af3e1269.png)
+
+
 # Requirements
 
 * Python 3.8

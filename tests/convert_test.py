@@ -5,8 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase, main
 
-from jsonexcel import ToExcel, FromExcel
-from jsonexcel.convert import ExcelSheet, JsonFile
+from jsonexcel import ToExcel, FromExcel, ExcelSheet, JsonFile
 
 
 TEST_DIR = None
@@ -41,13 +40,13 @@ class ToExceTestCase(TestCase):
         for json_file in glob.glob(f'{TEST_DIR.name}/*.json'):
             if '_' not in (base := os.path.splitext(os.path.basename(json_file))[0]) \
                     and base.startswith(file_name):
-                num = base.replace(file_name, '')
-                yield json_file, num
+                str_num = base.replace(file_name, '')
+                yield json_file, str_num
 
 
     def test_serialize(self):
-        for json_file, num in self.get_test_files('dic'):
-            serialized = globals()[f'serialized{num}']
+        for json_file, str_num in self.get_test_files('dic'):
+            serialized = globals()[f'serialized{str_num}']
             to_excel = ToExcel(json_file)
             for record in to_excel.get_records():
                 result = {(cell.key, cell.idx): cell.value for cell in record}
@@ -56,12 +55,24 @@ class ToExceTestCase(TestCase):
 
 
     def test_parse_json(self):
-        for json_file, num in self.get_test_files('dic'):
-            parsed = globals()[f'parsed{num}']
+        for json_file, str_num in self.get_test_files('dic'):
+            parsed = globals()[f'parsed{str_num}']
             to_excel = ToExcel(json_file)
             to_excel.set_sheet_format()
             with self.subTest(to_excel.sheet_format):
                 self.assertEqual(parsed, to_excel.sheet_format)
+
+    
+    def test_selected_serialize(self):
+        for json_file, str_num in self.get_test_files('dic'):
+            if item := selected_test.get(int(str_num)):
+                keys, expect = item
+                to_excel = ToExcel(json_file)
+                for record in to_excel.get_selected_records(keys):
+                    result = {(cell.key, cell.idx): cell.value for cell in record}
+                with self.subTest(result):
+                    self.assertEqual(expect, result)
+
 
 
 class FromExcelTestCase(TestCase):
@@ -126,6 +137,15 @@ parsed9 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i': 'c.g'}
 parsed10 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i.j': 'c.g', 'c.g.i.k': 'c.g'} 
 parsed11 = {'a_a': ExcelSheet.MAIN, 'c_c.a': ExcelSheet.MAIN, 'c_c.b.x': ExcelSheet.MAIN, 
     'c_c.b.y': ExcelSheet.MAIN, 'd_d-0': ExcelSheet.MAIN, 'd_d-1': ExcelSheet.MAIN, 'd_d-2': ExcelSheet.MAIN}
+
+selected_test = {
+    # value is a tuple of selected keys and expected value
+    1: (('a', 'c.b.x'), {('a', '1'): 1, ('c.b.x', '1'): 5}),
+    2: (('e.g',), {('e.g', '1-0'): 6, ('e.g', '1-1'): 120}),
+    7: (('h.i', 'h.j'), {('h.i', '1-0'): 5, ('h.j', '1-0'): 6, ('h.i', '1-1'): 100, ('h.j', '1-1'): 120}),
+    9: (('c.f', 'c.g.i'), {('c.f', '1-0'): 5, ('c.g.i', '1-0-0'): 120, ('c.g.i', '1-0-1'): 220, ('c.f', '1-1'): 7, ('c.g.i', '1-1-0'): 180}),
+    10: (('c.g.i.k',), {('c.g.i.k', '1-0-0'): 16, ('c.g.i.k', '1-0-1'): 18, ('c.g.i.k', '1-1-0'): 20})
+}
 
 
 if __name__ == '__main__':

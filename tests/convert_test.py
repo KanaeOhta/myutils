@@ -105,6 +105,7 @@ dic8 = {'h': [{'i': {'k': [5, 6], 'l': 100}, 'j': 6}, {'i': {'k': [7, 8], 'l': 1
 dic9 = {'c': [{'f': 5, 'g': [{'h': 100, 'i': 120}, {'h': 200, 'i': 220}]}, {'f': 7, 'g': [{'h': 150, 'i': 180}]}]}
 dic10 = {'c': [{'f': 5, 'g': [{'h': 100, 'i': {'j': 15, 'k':16}}, {'h': 200, 'i': {'j': 17, 'k':18}}]}, {'f': 7, 'g': [{'h': 150, 'i': {'j': 19, 'k':20}}]}]}
 dic11 = {'a-a': 1, 'c.c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd-d': [1, 2, 3]}
+dic12 = {'d': [[{'h': 5, 'i': 10}, {'h': 50, 'i': 1000}], [{'h': 50, 'i': 30}, {'h': 80, 'i': 100}]]}
 
 serialized1 = {('a', '1'): 1, ('c.a', '1'): 2, ('c.b.x', '1'): 5, ('c.b.y', '1'): 10, ('d-0', '1'): 1, ('d-1', '1'): 2, ('d-2', '1'): 3}
 serialized2 = {('e.f', '1-0'): 5, ('e.g', '1-0'): 6, ('e.f', '1-1'): 100, ('e.g', '1-1'): 120}
@@ -123,6 +124,8 @@ serialized10 = {('c.f', '1-0'): 5, ('c.g.h', '1-0-0'): 100, ('c.g.i.j', '1-0-0')
     ('c.f', '1-1'): 7, ('c.g.h', '1-1-0'): 150, ('c.g.i.j', '1-1-0'): 19, ('c.g.i.k', '1-1-0'): 20} 
 serialized11 = {('a_a', '1'): 1, ('c_c.a', '1'): 2, ('c_c.b.x', '1'): 5, 
     ('c_c.b.y', '1'): 10, ('d_d-0', '1'): 1, ('d_d-1', '1'): 2, ('d_d-2', '1'): 3}
+serialized12 = {('d-0.h', '1-0'): 5, ('d-0.i', '1-0'): 10, ('d-0.h', '1-1'): 50, ('d-0.i', '1-1'): 1000,
+    ('d-1.h', '1-0'): 50, ('d-1.i', '1-0'): 30, ('d-1.h', '1-1'): 80, ('d-1.i', '1-1'): 100}
 
 parsed1 = {'a': ExcelSheet.MAIN, 'c.a': ExcelSheet.MAIN, 'c.b.x': ExcelSheet.MAIN, 'c.b.y': ExcelSheet.MAIN, 'd-0': ExcelSheet.MAIN,
     'd-1': ExcelSheet.MAIN, 'd-2': ExcelSheet.MAIN}
@@ -137,6 +140,7 @@ parsed9 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i': 'c.g'}
 parsed10 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i.j': 'c.g', 'c.g.i.k': 'c.g'} 
 parsed11 = {'a_a': ExcelSheet.MAIN, 'c_c.a': ExcelSheet.MAIN, 'c_c.b.x': ExcelSheet.MAIN, 
     'c_c.b.y': ExcelSheet.MAIN, 'd_d-0': ExcelSheet.MAIN, 'd_d-1': ExcelSheet.MAIN, 'd_d-2': ExcelSheet.MAIN}
+parsed12 = {'d-0.h': 'd-0', 'd-0.i': 'd-0', 'd-1.h': 'd-1', 'd-1.i': 'd-1'}
 
 selected_test = {
     # value is a tuple of selected keys and expected value

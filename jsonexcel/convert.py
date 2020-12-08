@@ -142,7 +142,7 @@ class ReadingSheet(ExcelSheet):
             if not self.is_empty(val := cell.value):
                 val = data_type(val)
                 if data_type == str:
-                    # Convert _x000D_ to \r
+                    # Convert '_x000D_' to '\r'
                     val = openpyxl.utils.escape.unescape(val)
             yield key, val
 
@@ -213,6 +213,7 @@ class Convert:
             else:
                 yield f'{pref}{key}', idx, val
 
+
     
     def parse_json(self, dic, group, pref=''):
         """Return a pair of sheet name and column name.
@@ -253,15 +254,24 @@ class Convert:
             dic[key] = obj()
         return dic[key]
 
+    
+    def set_nested_list(self, li, split_keys):
+        """split_keys, li: list
+            Return nested list or li.
+        """
+        for split_key in split_keys:
+            li = self.set_obj_to_list(li, int(split_key), list)
+        return li
+
 
     def _deserialize(self, new_dic, keys, idxes, val):
         if not idxes: # the first level
             if len(keys) == 1:
                 if self.HYPHEN in keys[0]: # Value is list
                     split_keys = keys[0].split(self.HYPHEN)
-                    li = self.set_obj_to_dict(new_dic, split_keys[0], list)
-                    for split_key in split_keys[1:-1]: # Multidimensional list
-                        li = self.set_obj_to_list(li, int(split_key), list)
+                    # If split_keys[1:-1] is not empty, li is nested list
+                    li = self.set_nested_list(
+                        self.set_obj_to_dict(new_dic, split_keys[0], list), split_keys[1:-1])
                     if val: 
                         li.append(val)
                 else: # Value is not list
@@ -270,11 +280,14 @@ class Convert:
                 dic = self.set_obj_to_dict(new_dic, keys[0], dict)
                 self._deserialize(dic, keys[1:], idxes, val)
         else: # Dict in list
-            li = self.set_obj_to_dict(new_dic, keys[0], list)
+            split_keys = keys[0].split(self.HYPHEN)
+            # If split_keys[1:-1] is not empty, li is nested list
+            li = self.set_nested_list(
+                self.set_obj_to_dict(new_dic, split_keys[0], list), split_keys[1:])
             dic = self.set_obj_to_list(li, idxes[0], dict)
             self._deserialize(dic, keys[1:], idxes[1:], val)
 
-        
+
     def deserialize(self, dic):
         new_dic = {}
         for (key_str, idx_str), val in dic.items():
@@ -340,7 +353,7 @@ class ToExcel(Convert):
         self.set_sheet_format()
         self.sheet_format = {key: val for key, val \
             in self.sheet_format.items() if key in keys}
-        records = (record for record in self.get_selected_records(keys))
+        records = iter(self.get_selected_records(keys))
         self.output(records)
         self.sheet_format = {}
 
@@ -353,7 +366,7 @@ class ToExcel(Convert):
 
     def convert(self):
         self.set_sheet_format()
-        records = (record for record in self.get_records())
+        records = iter(self.get_records())
         self.output(records)
         self.sheet_format = {}
 
@@ -446,3 +459,4 @@ class FromExcel(Convert):
         json_file = JsonFile(
             self.get_file_path(self.excel_file, '.json')) 
         json_file.output(records, indent)
+

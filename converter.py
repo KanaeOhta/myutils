@@ -48,11 +48,17 @@ class ConverterWindow(ttk.Frame):
         frame.grid(row=3, column=0, pady=20, padx=20, sticky=(tk.W, tk.E, tk.N, tk.S))
         close_button = ttk.Button(frame, text='Close', command=self.close)
         close_button.pack(side=tk.RIGHT)
-        convert_button = ttk.Button(frame, text='Convert')
+        convert_button = ttk.Button(frame, text='Convert', command=self.convert)
         convert_button.pack(side=tk.RIGHT, padx=5)
         option_button = ttk.Button(frame, text='Option >>')
         option_button.pack(side=tk.RIGHT, padx=5)
 
+
+    def convert(self):
+        if not (convert_file := self.file_path.get()):
+            messagebox.showerror('Error', 'No file is selected.')
+            return
+       
 
     def open(self):
         initialdir = os.path.abspath(os.path.dirname(__file__))
@@ -63,24 +69,8 @@ class ConverterWindow(ttk.Frame):
             self.file_path.set(file_path)
 
 
-
     def close(self, event=None):
         self.quit()
-
-    
-
-
-
-    # def create_base(self):
-    #     base = tk.Frame(self.master)
-    #     base.pack(fill=tk.BOTH, expand=True)
-
-
-
-
-
-
-
 
 
 def main():

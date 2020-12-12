@@ -14,6 +14,10 @@ class NoMoreRecord(Exception):
     pass
 
 
+class ExtensionError(Exception):
+    pass
+
+
 class JsonFile:
 
     def __init__(self, file):
@@ -172,10 +176,12 @@ class ReadingSheet(ExcelSheet):
                 yield record 
 
 
-def file_check(path):
+def file_check(path, ext):
     if not os.path.isfile(path):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), path)
+    if os.path.splitext(path)[-1] != f'.{ext}':
+        raise ExtensionError('{} file is not selected.'.format(ext))
 
 
 class Convert:
@@ -214,7 +220,6 @@ class Convert:
                 yield f'{pref}{key}', idx, val
 
 
-    
     def parse_json(self, dic, group, pref=''):
         """Return a pair of sheet name and column name.
         """
@@ -320,7 +325,7 @@ class ToExcel(Convert):
 
     def __init__(self, json_file):
         json_file = os.path.abspath(json_file)
-        file_check(json_file)
+        file_check(json_file, 'json')
         self.json = JsonFile(json_file)
         self.set_replace_table(
             {self.HYPHEN: '_', self.DOT: '_'})
@@ -417,7 +422,7 @@ class FromExcel(Convert):
 
     def __init__(self, excel_file):
         excel_file = os.path.abspath(excel_file)
-        file_check(excel_file)
+        file_check(excel_file, 'xlsx')
         self.excel_file = excel_file
         self.sheets = None
         
@@ -459,4 +464,28 @@ class FromExcel(Convert):
         json_file = JsonFile(
             self.get_file_path(self.excel_file, '.json')) 
         json_file.output(records, indent)
+    
 
+if __name__ == '__main__':
+    # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
+    # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
+    # test_dic3 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6, 'h': [89, 56, 23]}, {'f': 100, 'g': 120, 'h': [70, 56, 20]}]}
+    # test_dic4 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[1, 2, 3], [4, 5, 6]]}
+    # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
+    # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
+    import time
+    start = time.time()
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\database_20201202215231.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\generated.json"
+    to_excel = ToExcel('database.json')
+    # to_excel = ToExcel(path)
+    # to_excel.partial_convert('description', 'nutrients.description', 'nutrients.value')
+    to_excel.convert()
+    # print({k : v for k, v in converter.serialize(test_dic3)})
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\generated_20201208222545.xlsx"
+    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\test_data\test9_20201208194951.xlsx"
+    # from_excel = FromExcel(path)
+    # from_excel.convert(replacement={
+        # 'c_c': 'c-c', 'a_b': 'a.b', 'b_c': 'b.c', 'x_d': 'x-d', 'y_d': 'y-d', 'd_f': 'd-f'})
+    # from_excel.convert()
+    print(f'It took {time.time() - start} seconds')

@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
+from functools import partial
 import errno
 import itertools
 import json
@@ -302,21 +303,55 @@ class Convert:
         return new_dic
 
 
-    def replace(self, obj):
-        """key or specific characters in key are replaced. 
+    def replace(self, _replace, obj):
+        """Particular characters in key are replaced. 
+           _replace: function 
         """
         if isinstance(obj, dict):
-            return {self._replace(key): self.replace(val) for key, val in obj.items()}
+            return {_replace(key): self.replace(_replace, val) for key, val in obj.items()}
         elif isinstance(obj, list):
-            return [self.replace(item) for item in obj]
+            return [self.replace(_replace, item) for item in obj]
         else:
             return obj
 
 
-    def set_replace_table(self, replacement):
-        """Override in subclasses to use replace method.
+    def _flatten_list(self, li, item_type):
+        for item in li:
+            if isinstance(item, list):
+                yield from self._flatten_list(item, item_type)
+            else:
+                if isinstance(item, item_type):
+                    yield item
+
+    
+    def _find(self, dic, split_keys):
+        for k, v in dic.items():
+            if len(split_keys) == 1 and k == split_keys[0]:
+                if isinstance(v, dict):
+                    yield v
+                elif isinstance(v, list):
+                    for list_val in v:
+                        yield list_val
+            elif isinstance(v, dict):
+                yield from self._find(v, split_keys[1:])
+            elif isinstance(v, list):
+                for list_val in self._flatten_list(v, dict):
+                    yield from self._find(list_val, split_keys[1:])
+
+
+    def replace_selected_keys(self, replacement, dic):
+        """replacement: {old_key: new_key, ...}
+           If dic is {'a': {'b': {'c_c': 5}}, 'd': 6} and replacement is {'a.b.c_c': 'c-c'},
+           dic will be changed to {'a': {'b': {'c-c': 5}}, 'd': 6}
         """
-        raise NotImplementedError()
+        for old_keys, new_key in replacement.items():
+            split_keys = old_keys.split('.')
+            old_key = split_keys[-1]
+            if len(split_keys) == 1 and old_key in dic:
+                dic[new_key] = dic.pop(old_key)
+                continue 
+            for found in self._find(dic, split_keys[:-1]):
+                found[new_key] = found.pop(old_key)
 
 
 class ToExcel(Convert):
@@ -343,7 +378,8 @@ class ToExcel(Convert):
         """
         if not self.sheet_format:
             for dic in self.json:
-                for group, key in self.parse_json(self.replace(dic), group=ExcelSheet.MAIN): 
+                for group, key in self.parse_json(
+                        self.replace(self._replace, dic), group=ExcelSheet.MAIN): 
                     if key not in self.sheet_format.keys():
                         self.sheet_format[key] = group
 
@@ -351,7 +387,7 @@ class ToExcel(Convert):
     def get_selected_records(self, keys):
         for i, dic in enumerate(self.json, 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(dic), str(i)) if key in keys)
+                in self.serialize(self.replace(self._replace, dic), str(i)) if key in keys)
 
 
     def partial_convert(self, *keys):
@@ -366,7 +402,7 @@ class ToExcel(Convert):
     def get_records(self):
         for i, dic in enumerate(self.json, 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(dic), str(i)))
+                in self.serialize(self.replace(self._replace, dic), str(i)))
 
 
     def convert(self):
@@ -432,16 +468,12 @@ class FromExcel(Convert):
             in wb if sh.cell(row=2, column=1).value)
    
 
-    def set_replace_table(self, replacement): 
-        self._replace = lambda x: replacement[x] if x in replacement else x
-
-
     def convert(self, indent=None, replacement=None):
         wb = openpyxl.load_workbook(self.excel_file)
         self.set_sheets(wb)
         if replacement:
-            self.set_replace_table(replacement)
-            records = (self.replace(record) for record in self.read())
+            _replace = partial(self.replace_selected_keys, replacement)
+            records = (_replace(record) for record in self.read())
         else:
             records = (record for record in self.read())
         self.output(records, indent)

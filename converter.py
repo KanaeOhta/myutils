@@ -35,12 +35,12 @@ class ConverterWindow(ttk.Frame):
        
         
     def create_ui(self):
-        self.create_main_frame()
+        self.create_base_frame()
         self.create_tab_toexcel()
         self.create_tab_fromexcel()
         
 
-    def create_main_frame(self):
+    def create_base_frame(self):
         frame = ttk.Frame(self.master)
         frame.pack(fill=tk.BOTH, expand=True)
         note = ttk.Notebook(frame)

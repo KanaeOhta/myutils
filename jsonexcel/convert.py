@@ -315,12 +315,12 @@ class Convert:
             return obj
 
 
-    def _flatten_list(self, li, item_type):
+    def _flatten_list(self, li):
         for item in li:
             if isinstance(item, list):
-                yield from self._flatten_list(item, item_type)
+                yield from self._flatten_list(item)
             else:
-                if isinstance(item, item_type):
+                if isinstance(item, dict):
                     yield item
 
     
@@ -330,15 +330,14 @@ class Convert:
                 if isinstance(v, dict):
                     yield v
                 elif isinstance(v, list):
-                    for list_val in v:
-                        yield list_val
+                    yield from self._flatten_list(v)
             elif isinstance(v, dict):
                 yield from self._find(v, split_keys[1:])
             elif isinstance(v, list):
-                for list_val in self._flatten_list(v, dict):
+                for list_val in self._flatten_list(v):
                     yield from self._find(list_val, split_keys[1:])
 
-
+    
     def replace_selected_keys(self, replacement, dic):
         """replacement: {old_key: new_key, ...}
            If dic is {'a': {'b': {'c_c': 5}}, 'd': 6} and replacement is {'a.b.c_c': 'c-c'},
@@ -346,12 +345,14 @@ class Convert:
         """
         for old_keys, new_key in replacement.items():
             split_keys = old_keys.split('.')
+            # split_keys[-1] will be replaced
             old_key = split_keys[-1]
             if len(split_keys) == 1 and old_key in dic:
                 dic[new_key] = dic.pop(old_key)
                 continue 
             for found in self._find(dic, split_keys[:-1]):
                 found[new_key] = found.pop(old_key)
+        return dic
 
 
 class ToExcel(Convert):
@@ -459,25 +460,26 @@ class FromExcel(Convert):
     def __init__(self, excel_file):
         excel_file = os.path.abspath(excel_file)
         file_check(excel_file, 'xlsx')
-        self.excel_file = excel_file
+        self.output_file = self.get_file_path(excel_file, '.json')
+        self.wb = openpyxl.load_workbook(excel_file)
         self.sheets = None
         
         
-    def set_sheets(self, wb):
-        self.sheets = tuple(ReadingSheet(sh) for sh \
-            in wb if sh.cell(row=2, column=1).value)
-   
+    def set_sheets(self):
+        if self.sheets is None:
+            self.sheets = tuple(ReadingSheet(sh) for sh \
+                in self.wb if sh.cell(row=2, column=1).value)
+    
 
     def convert(self, indent=None, replacement=None):
-        wb = openpyxl.load_workbook(self.excel_file)
-        self.set_sheets(wb)
+        self.set_sheets()
         if replacement:
             _replace = partial(self.replace_selected_keys, replacement)
             records = (_replace(record) for record in self.read())
         else:
             records = (record for record in self.read())
         self.output(records, indent)
-        wb.close()
+        self.wb.close()
 
     
     def read(self):
@@ -493,6 +495,5 @@ class FromExcel(Convert):
 
 
     def output(self, records, indent):
-        json_file = JsonFile(
-            self.get_file_path(self.excel_file, '.json')) 
+        json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)

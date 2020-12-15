@@ -9,22 +9,23 @@ from jsonexcel import ToExcel, FromExcel, ExcelSheet, JsonFile
 
 
 TEST_DIR = None
+TEST_PATH = None
 
 
 def setUpModule():
     global TEST_DIR
     TEST_DIR = TemporaryDirectory()
-    test_path = Path(TEST_DIR.name)
+    TEST_PATH = Path(TEST_DIR.name)
     for key, val in globals().items():
-        if key.startswith(('dic', 'replacedic')):
-            file_path = os.path.join(test_path, f'{key}.json')
+        if key.startswith('dic'):
+            file_path = os.path.join(TEST_PATH, f'{key}.json')
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump([val], f, ensure_ascii=False)
                 f.flush()
-    for json_file in glob.glob(f'{test_path}/*.json'):
-            to_excel = ToExcel(json_file)
-            to_excel.convert()
-    for excel_file in glob.glob(f'{test_path}/*.xlsx'):
+    for json_file in glob.glob(f'{TEST_PATH}/*.json'):
+        to_excel = ToExcel(json_file)
+        to_excel.convert()
+    for excel_file in glob.glob(f'{TEST_PATH}/*.xlsx'):
         from_excel = FromExcel(excel_file)
         from_excel.convert()
           
@@ -36,7 +37,7 @@ def tearDownModule():
 class ToExceTestCase(TestCase):
 
     def get_test_files(self, file_name):
-        for json_file in glob.glob(f'{Path(TEST_DIR.name)}/*.json'):
+        for json_file in glob.glob(f'{TEST_PATH}/*.json'):
             if '_' not in (base := os.path.splitext(os.path.basename(json_file))[0]) \
                     and base.startswith(file_name):
                 str_num = base.replace(file_name, '')
@@ -76,7 +77,7 @@ class ToExceTestCase(TestCase):
 class FromExcelTestCase(TestCase):
 
     def get_test_files(self, prefix):
-        for json_file in glob.glob(f'{Path(TEST_DIR.name)}/*.json'):
+        for json_file in glob.glob(f'{TEST_PATH}/*.json'):
             if '_' in (file_name := os.path.basename(json_file)) \
                     and file_name.startswith(prefix):
                 obj_name = file_name.split('_')[0]

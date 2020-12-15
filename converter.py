@@ -22,6 +22,7 @@ class ConverterWindow(ttk.Frame):
 
     def create_variables(self):
         self.file_path = tk.StringVar()
+        self.edit_key = tk.StringVar()
         # self.key_array = tk.StringVar()
     #     self.file_path.trace_add('write', self.path_entered)
         
@@ -82,14 +83,47 @@ class ConverterWindow(ttk.Frame):
 
 
     def create_tab_fromexcel(self):
-        frame = ttk.Frame(self.tab_fromexcel)
-        frame.grid(row=0, column=0, pady=20, padx=20, sticky=(tk.W, tk.E, tk.N, tk.S))
-        filename_label = ttk.Label(frame, text='File name: ')
+        main_frame = ttk.Frame(self.tab_fromexcel)
+        main_frame.pack(fill=tk.BOTH, expand=True, pady=20, padx=20)
+        filename_label = ttk.Label(main_frame, text='File name ')
         filename_label.grid(row=0, column=0, sticky=tk.E)
-        path_entry = ttk.Entry(frame, textvariable=self.file_path, width=70)
-        path_entry.grid(row=0, column=1, sticky=tk.E)
-        open_button = ttk.Button(frame, text='Open')
-        open_button.grid(row=0, column=2, sticky=tk.E)
+        path_entry = ttk.Entry(main_frame, textvariable=self.file_path, width=70, state='readonly')
+        path_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E))
+        open_button = ttk.Button(main_frame, text='Open', command='')
+        open_button.grid(row=0, column=3, sticky=tk.E)
+
+        self.convert_button = ttk.Button(main_frame, text='Convert', command=self.to_excel, state=tk.DISABLED)
+        self.convert_button.grid(row=2, column=2)
+        self.deselect_button = ttk.Button(main_frame, text='Deselect', command=self.deselect, state=tk.DISABLED)
+        self.deselect_button.grid(row=2, column=3)
+
+        main_frame.columnconfigure(1, weight=1)
+        main_frame.rowconfigure(1, weight=1)
+
+        label_frame  = ttk.LabelFrame(main_frame, text=' Edit keys, if you need. ')
+        label_frame.grid(row=1, column=0, columnspan=4, pady=30, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        self.keys_box = tk.Listbox(label_frame)
+        self.keys_box.grid(row=0, rowspan=3, column=0, pady=20, padx=(20, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
+        y_scroll_keys = ttk.Scrollbar(label_frame, orient=tk.VERTICAL, command=self.keys_box.yview)
+        self.keys_box['yscrollcommand'] = y_scroll_keys.set
+        y_scroll_keys.grid(row=0, rowspan=3, column=1, pady=20, padx=(0, 10), sticky=(tk.N, tk.S, tk.E))
+
+        self.edit_entry = ttk.Entry(label_frame, textvariable=self.edit_key, width=20)
+        self.edit_entry.grid(row=0, column=2, pady=(20, 0), padx=(20, 0), sticky=(tk.W, tk.N, tk.E))
+        ok_button = ttk.Button(label_frame, text='OK', width=4, command='')
+        ok_button.grid(row=0, column=3, pady=(19, 0), sticky=(tk.N, tk.E))
+        allow_label = ttk.Label(label_frame, text='↓')
+        allow_label.grid(row=1, column=2, pady=2, padx=(30, 20), sticky=tk.N)
+        self.edited_box = tk.Listbox(label_frame)
+        self.edited_box.grid(row=2, column=2, columnspan=2, pady=(5, 20), padx=(20, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
+        y_scroll_edited = ttk.Scrollbar(label_frame, orient=tk.VERTICAL, command=self.edited_box.yview)
+        self.edited_box['yscrollcommand'] = y_scroll_edited.set
+        y_scroll_edited.grid(row=2, column=4, pady=(5, 20), padx=(0, 20), sticky=(tk.N, tk.S, tk.W))
+
+        label_frame.columnconfigure(0, weight=1)
+        label_frame.columnconfigure(2, weight=1)
+        label_frame.rowconfigure(2, weight=1)
 
 
     def select_file(self, ext):

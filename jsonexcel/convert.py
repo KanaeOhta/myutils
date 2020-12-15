@@ -1,5 +1,6 @@
 from collections import namedtuple
 from datetime import datetime
+from functools import partial
 import errno
 import itertools
 import json
@@ -302,21 +303,56 @@ class Convert:
         return new_dic
 
 
-    def replace(self, obj):
-        """key or specific characters in key are replaced. 
+    def replace(self, _replace, obj):
+        """Particular characters in key are replaced. 
+           _replace: function 
         """
         if isinstance(obj, dict):
-            return {self._replace(key): self.replace(val) for key, val in obj.items()}
+            return {_replace(key): self.replace(_replace, val) for key, val in obj.items()}
         elif isinstance(obj, list):
-            return [self.replace(item) for item in obj]
+            return [self.replace(_replace, item) for item in obj]
         else:
             return obj
 
 
-    def set_replace_table(self, replacement):
-        """Override in subclasses to use replace method.
+    def _flatten_list(self, li):
+        for item in li:
+            if isinstance(item, list):
+                yield from self._flatten_list(item)
+            else:
+                if isinstance(item, dict):
+                    yield item
+
+    
+    def _find(self, dic, split_keys):
+        for k, v in dic.items():
+            if len(split_keys) == 1 and k == split_keys[0]:
+                if isinstance(v, dict):
+                    yield v
+                elif isinstance(v, list):
+                    yield from self._flatten_list(v)
+            elif isinstance(v, dict):
+                yield from self._find(v, split_keys[1:])
+            elif isinstance(v, list):
+                for list_val in self._flatten_list(v):
+                    yield from self._find(list_val, split_keys[1:])
+
+    
+    def replace_selected_keys(self, replacement, dic):
+        """replacement: {old_key: new_key, ...}
+           If dic is {'a': {'b': {'c_c': 5}}, 'd': 6} and replacement is {'a.b.c_c': 'c-c'},
+           dic will be changed to {'a': {'b': {'c-c': 5}}, 'd': 6}
         """
-        raise NotImplementedError()
+        for old_keys, new_key in replacement.items():
+            split_keys = old_keys.split('.')
+            # split_keys[-1] will be replaced
+            old_key = split_keys[-1]
+            if len(split_keys) == 1 and old_key in dic:
+                dic[new_key] = dic.pop(old_key)
+                continue 
+            for found in self._find(dic, split_keys[:-1]):
+                found[new_key] = found.pop(old_key)
+        return dic
 
 
 class ToExcel(Convert):
@@ -343,7 +379,8 @@ class ToExcel(Convert):
         """
         if not self.sheet_format:
             for dic in self.json:
-                for group, key in self.parse_json(self.replace(dic), group=ExcelSheet.MAIN): 
+                for group, key in self.parse_json(
+                        self.replace(self._replace, dic), group=ExcelSheet.MAIN): 
                     if key not in self.sheet_format.keys():
                         self.sheet_format[key] = group
 
@@ -351,7 +388,7 @@ class ToExcel(Convert):
     def get_selected_records(self, keys):
         for i, dic in enumerate(self.json, 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(dic), str(i)) if key in keys)
+                in self.serialize(self.replace(self._replace, dic), str(i)) if key in keys)
 
 
     def partial_convert(self, *keys):
@@ -366,7 +403,7 @@ class ToExcel(Convert):
     def get_records(self):
         for i, dic in enumerate(self.json, 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(dic), str(i)))
+                in self.serialize(self.replace(self._replace, dic), str(i)))
 
 
     def convert(self):
@@ -423,29 +460,26 @@ class FromExcel(Convert):
     def __init__(self, excel_file):
         excel_file = os.path.abspath(excel_file)
         file_check(excel_file, 'xlsx')
-        self.excel_file = excel_file
+        self.output_file = self.get_file_path(excel_file, '.json')
+        self.wb = openpyxl.load_workbook(excel_file)
         self.sheets = None
         
         
-    def set_sheets(self, wb):
-        self.sheets = tuple(ReadingSheet(sh) for sh \
-            in wb if sh.cell(row=2, column=1).value)
-   
-
-    def set_replace_table(self, replacement): 
-        self._replace = lambda x: replacement[x] if x in replacement else x
-
+    def set_sheets(self):
+        if self.sheets is None:
+            self.sheets = tuple(ReadingSheet(sh) for sh \
+                in self.wb if sh.cell(row=2, column=1).value)
+    
 
     def convert(self, indent=None, replacement=None):
-        wb = openpyxl.load_workbook(self.excel_file)
-        self.set_sheets(wb)
+        self.set_sheets()
         if replacement:
-            self.set_replace_table(replacement)
-            records = (self.replace(record) for record in self.read())
+            _replace = partial(self.replace_selected_keys, replacement)
+            records = (_replace(record) for record in self.read())
         else:
             records = (record for record in self.read())
         self.output(records, indent)
-        wb.close()
+        self.wb.close()
 
     
     def read(self):
@@ -461,31 +495,5 @@ class FromExcel(Convert):
 
 
     def output(self, records, indent):
-        json_file = JsonFile(
-            self.get_file_path(self.excel_file, '.json')) 
+        json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)
-    
-
-if __name__ == '__main__':
-    # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
-    # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
-    # test_dic3 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6, 'h': [89, 56, 23]}, {'f': 100, 'g': 120, 'h': [70, 56, 20]}]}
-    # test_dic4 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[1, 2, 3], [4, 5, 6]]}
-    # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
-    # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
-    import time
-    start = time.time()
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\database_20201202215231.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\generated.json"
-    to_excel = ToExcel('database.json')
-    # to_excel = ToExcel(path)
-    # to_excel.partial_convert('description', 'nutrients.description', 'nutrients.value')
-    to_excel.convert()
-    # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\generated_20201208222545.xlsx"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\test_data\test9_20201208194951.xlsx"
-    # from_excel = FromExcel(path)
-    # from_excel.convert(replacement={
-        # 'c_c': 'c-c', 'a_b': 'a.b', 'b_c': 'b.c', 'x_d': 'x-d', 'y_d': 'y-d', 'd_f': 'd-f'})
-    # from_excel.convert()
-    print(f'It took {time.time() - start} seconds')

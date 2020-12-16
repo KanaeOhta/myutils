@@ -507,27 +507,3 @@ class FromExcel(Convert):
     def output(self, records, indent):
         json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)
-       
-
-if __name__ == '__main__':
-    # test_dic1 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3]}
-    # test_dic2 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6}, {'f': 100, 'g': 120}]}
-    # test_dic3 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [1, 2, 3], 'e': [{'f': 5, 'g': 6, 'h': [89, 56, 23]}, {'f': 100, 'g': 120, 'h': [70, 56, 20]}]}
-    # test_dic4 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[1, 2, 3], [4, 5, 6]]}
-    # test_dic5 = {'a': 1, 'c': {'a': 2, 'b': {'x': 5, 'y': 10}}, 'd': [[], []]}
-    # test_dic6 = {'c': {'a': 2, 'b': {'x': 5, 'y': 10}, 'e': [10, 20, 30]}}
-    import time
-    start = time.time()
-    # path = r"C:\Users\kanae\Desktop\test\dic1.json"
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\generated.json"
-    # to_excel = ToExcel('database.json')
-    # to_excel = ToExcel(path)
-    # to_excel.partial_convert('description', 'nutrients.description', 'nutrients.value')
-    # to_excel.convert()
-    # print({k : v for k, v in converter.serialize(test_dic3)})
-    # path = r"C:\Users\kanae\OneDrive\myDevelopment\jsonexcel\database_20201213232948.xlsx"
-    path = r"C:\Users\kanae\Desktop\test\dic11_20201215151343.xlsx"
-    from_excel = FromExcel(path)
-    from_excel.convert(replacement={'d-0.h_h': 'h.h', 'd-1.h_h': 'h.h'})
-    # from_excel.convert()
-    print(f'It took {time.time() - start} seconds')

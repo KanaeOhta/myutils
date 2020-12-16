@@ -25,9 +25,11 @@ class ConverterWindow(ttk.Frame):
 
 
     def create_variables(self):
+        self.indent_list = [0, 2, 4]
         self.json_path = tk.StringVar()
         self.excel_path = tk.StringVar()
         self.edit_key = tk.StringVar()
+        self.indent = tk.StringVar()
         self.now_selected = None
         # self.key_array = tk.StringVar()
     #     self.file_path.trace_add('write', self.path_entered)
@@ -66,7 +68,7 @@ class ConverterWindow(ttk.Frame):
         filename_label.grid(row=0, column=0, sticky=tk.E)
         path_entry = ttk.Entry(main_frame, textvariable=self.json_path, width=70, state='readonly')
         path_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E))
-        open_button = ttk.Button(main_frame, text='Open', command=self.open_json)
+        open_button = ttk.Button(main_frame, text='Open', command=self.open)
         open_button.grid(row=0, column=3, sticky=tk.E)
 
         label_frame = ttk.LabelFrame(main_frame, text=' Select keys, if you want export selected data. ')
@@ -78,7 +80,7 @@ class ConverterWindow(ttk.Frame):
         y_scroll.grid(row=0, column=1, pady=20, padx=(0, 20), sticky=(tk.N, tk.S, tk.W))
 
         self.toexcel_convert_button = ttk.Button(main_frame, text='Convert',
-            command=self.to_excel, state=tk.DISABLED)
+            command=self.convert, state=tk.DISABLED)
         self.toexcel_convert_button.grid(row=2, column=2)
         self.toexcel_deselect_button = ttk.Button(main_frame, text='Deselect', 
             command=self.deselect, state=tk.DISABLED)
@@ -97,12 +99,12 @@ class ConverterWindow(ttk.Frame):
         filename_label.grid(row=0, column=0, sticky=tk.E)
         path_entry = ttk.Entry(main_frame, textvariable=self.excel_path, width=70, state='readonly')
         path_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E))
-        open_button = ttk.Button(main_frame, text='Open', command=self.open_excel)
+        open_button = ttk.Button(main_frame, text='Open', command=self.open)
         open_button.grid(row=0, column=3, sticky=tk.E)
 
-        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', command='', state=tk.DISABLED)
+        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', command=self.convert, state=tk.DISABLED)
         self.fromexcel_convert_button.grid(row=2, column=2)
-        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', command='', state=tk.DISABLED)
+        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', command=self.deselect, state=tk.DISABLED)
         self.fromexcel_deselect_button.grid(row=2, column=3)
 
         label_frame  = ttk.LabelFrame(main_frame, text=' Edit keys, if you need. ')
@@ -121,7 +123,7 @@ class ConverterWindow(ttk.Frame):
         ok_button.grid(row=0, column=3, pady=(19, 0), sticky=(tk.N, tk.E))
         allow_label = ttk.Label(label_frame, text='↓')
         allow_label.grid(row=1, column=2, pady=2, padx=(30, 20), sticky=tk.N)
-        self.edited_box = tk.Listbox(label_frame)
+        self.edited_box = tk.Listbox(label_frame, selectmode='multiple')
         self.edited_box.grid(row=2, column=2, columnspan=2, pady=(5, 20), padx=(20, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
         y_scroll_edited = ttk.Scrollbar(label_frame, orient=tk.VERTICAL, command=self.edited_box.yview)
         self.edited_box['yscrollcommand'] = y_scroll_edited.set
@@ -134,6 +136,38 @@ class ConverterWindow(ttk.Frame):
         main_frame.rowconfigure(1, weight=1)
 
 
+    def open(self, event=None):
+        tab_name = self.get_current_tab_name()
+        if tab_name == TOEXCEL:
+            self.open_json()
+        else:
+            self.open_excel()
+
+    
+    def convert(self, event=None):
+        """Called when convert button is clicked.
+        """
+        tab_name = self.get_current_tab_name() 
+        if tab_name == TOEXCEL:
+            self.to_excel()
+        else:
+            self.from_excel()
+        
+
+    def deselect(self, event=None):
+        """Called when deselect button is clicked.
+        """
+        tab_name = self.get_current_tab_name() 
+        if tab_name == TOEXCEL:
+            self.key_box.selection_clear(0, tk.END)
+        else:
+            self.edited_box_deselect()
+
+
+    def close(self, event=None):
+        self.quit()
+
+
     def keys_box_click(self, event=None):
         """Called when item is selected in keys_box(ListBox).
         """
@@ -142,16 +176,17 @@ class ConverterWindow(ttk.Frame):
             self.now_selected = self.keys_box.get(index)
             self.edit_key.set(self.key_table[self.now_selected])
     
-
+    
     def edit(self, event=None):
         """Called when ok button on FromExcel tab is clicked.
         """
         if edited := self.edit_key.get():
             original = self.key_table[self.now_selected]
-            if orignal := edited:
+            if original != edited:
                 num = len(self.now_selected)-len(original)
                 self.edited_keys[self.now_selected] = edited
                 self.edited_box.insert(tk.END, self.now_selected[:num] + edited)
+        self.edit_entry.delete(0, tk.END)
         self.keys_box.select_clear(0, tk.END)
 
 
@@ -193,7 +228,7 @@ class ConverterWindow(ttk.Frame):
             self.fromexcel_deselect_button['state'] = state
 
 
-    def to_excel(self, event=None):
+    def to_excel(self):
         """Called when click convert button on toexcel tab.
         """
         if selected_keys := [self.key_box.get(x) for x in self.key_box.curselection()]:
@@ -202,8 +237,16 @@ class ConverterWindow(ttk.Frame):
             self.converter.convert()
         messagebox.showinfo('Info', 'Complete!')
         
-  
-    def open_json(self, event=None):
+
+    def from_excel(self):
+        """Called when click convert button on fromexcel tab.
+        """
+        replacement = self.edited_keys if self.edited_keys else None
+        self.converter.convert(replacement)
+        messagebox.showinfo('Info', 'Complete!')
+
+
+    def open_json(self):
         """Called when click open button on toexcel tab.
         """
         self.switch_button_state(tk.DISABLED)
@@ -220,7 +263,7 @@ class ConverterWindow(ttk.Frame):
             self.switch_button_state(tk.NORMAL)
 
 
-    def open_excel(self, event=None):
+    def open_excel(self):
         """Called when click open button on fromexcel tab.
         """
         self.select_file('xlsx', self.excel_path)
@@ -239,14 +282,10 @@ class ConverterWindow(ttk.Frame):
             self.switch_button_state(tk.NORMAL)
 
 
-    def deselect(self, event=None):
-        self.key_box.selection_clear(0, tk.END)
-
+    def edited_box_deselect(self):
+        pass
         
-    def close(self, event=None):
-        self.quit()
-
-
+        
 def main():
     application = tk.Tk()
     application.withdraw()

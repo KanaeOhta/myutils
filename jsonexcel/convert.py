@@ -355,6 +355,16 @@ class Convert:
         return dic
 
 
+    def separate(self, keys):
+        """Separate key connected with DOT as below.
+           If keys id 'AA.BB.CC', 
+           ('AA', 'AA), ('AA.BB', 'BB) and ('AA.BB.CC', 'CC) are returned. 
+        """
+        li = [key.split(self.HYPHEN)[0] for key in keys.split(self.DOT)]
+        for i, key in enumerate(li, 1):
+            yield '.'.join(li[:i]), li[:i][-1] 
+
+
 class ToExcel(Convert):
     """Write data in json file to worksheets in Excel.
     """
@@ -497,3 +507,4 @@ class FromExcel(Convert):
     def output(self, records, indent):
         json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)
+        

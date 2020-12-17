@@ -1,3 +1,4 @@
+from collections import namedtuple
 import os
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -11,17 +12,15 @@ TOEXCEL = 'ToExcel'
 FROMEXCEL = 'FromExcel'
 
 
+Key = namedtuple('Key', 'nested real')
+
+
 class ConverterWindow(ttk.Frame):
     
     def __init__(self, master):
         super().__init__(master)
         self.create_variables()
         self.create_ui()
-
-
-    # def set_style(self):
-    #     s = ttk.Style()
-    #     s.configure('new.TFrame', background='#ffffff')
 
 
     def create_variables(self):
@@ -31,17 +30,8 @@ class ConverterWindow(ttk.Frame):
         self.edit_key = tk.StringVar()
         self.indent = tk.StringVar()
         self.now_selected = None
-        # self.key_array = tk.StringVar()
-    #     self.file_path.trace_add('write', self.path_entered)
-        
-
-    # def path_entered(self, *args):
-    #     """ _name is automatically set unique name."""
-    #     target = None
-    #     if args[0] == self.file_path._name:
-    #         target = self.file_path.get()
        
-        
+       
     def create_ui(self):
         self.create_base_frame()
         self.create_tab_toexcel()
@@ -60,17 +50,27 @@ class ConverterWindow(ttk.Frame):
         close_button = ttk.Button(frame, text='Close', command=self.close)
         close_button.pack(side=tk.RIGHT, pady=10, padx=20)
 
-    
+
+    def create_tab_top_frame(self, main_frame, textvariable):
+        """Create a frame having an entry for a file path.
+        """
+        top_frame = ttk.Frame(main_frame)
+        filename_label = ttk.Label(top_frame, text='File name ')
+        filename_label.grid(row=0, column=0, sticky=tk.E)
+        path_entry = ttk.Entry(top_frame, textvariable=textvariable, width=70, state='readonly')
+        path_entry.grid(row=0, column=1, sticky=(tk.W, tk.E))
+        open_button = ttk.Button(top_frame, text='Open', command=self.open)
+        open_button.grid(row=0, column=2, sticky=tk.E)
+        top_frame.columnconfigure(1, weight=1)
+        return top_frame
+
+
     def create_tab_toexcel(self):
         main_frame = ttk.Frame(self.tab_toexcel)
         main_frame.pack(fill=tk.BOTH, expand=True, pady=20, padx=20)
-        filename_label = ttk.Label(main_frame, text='File name ')
-        filename_label.grid(row=0, column=0, sticky=tk.E)
-        path_entry = ttk.Entry(main_frame, textvariable=self.json_path, width=70, state='readonly')
-        path_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E))
-        open_button = ttk.Button(main_frame, text='Open', command=self.open)
-        open_button.grid(row=0, column=3, sticky=tk.E)
-
+        top_frame = self.create_tab_top_frame(main_frame, self.json_path)
+        top_frame.grid(row=0, column=0, columnspan=4, sticky=(tk.W, tk.E, tk.N, tk.S))
+  
         label_frame = ttk.LabelFrame(main_frame, text=' Select keys, if you want export selected data. ')
         label_frame.grid(row=1, column=0, columnspan=4, pady=30, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.key_box = tk.Listbox(label_frame, selectmode='multiple')
@@ -85,7 +85,7 @@ class ConverterWindow(ttk.Frame):
         self.toexcel_deselect_button = ttk.Button(main_frame, text='Deselect', 
             command=self.deselect, state=tk.DISABLED)
         self.toexcel_deselect_button.grid(row=2, column=3)
-
+        
         label_frame.columnconfigure(0, weight=1)
         label_frame.rowconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=1)
@@ -95,21 +95,18 @@ class ConverterWindow(ttk.Frame):
     def create_tab_fromexcel(self):
         main_frame = ttk.Frame(self.tab_fromexcel)
         main_frame.pack(fill=tk.BOTH, expand=True, pady=20, padx=20)
-        filename_label = ttk.Label(main_frame, text='File name ')
-        filename_label.grid(row=0, column=0, sticky=tk.E)
-        path_entry = ttk.Entry(main_frame, textvariable=self.excel_path, width=70, state='readonly')
-        path_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E))
-        open_button = ttk.Button(main_frame, text='Open', command=self.open)
-        open_button.grid(row=0, column=3, sticky=tk.E)
-
-        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', command=self.convert, state=tk.DISABLED)
+        top_frame = self.create_tab_top_frame(main_frame, self.excel_path)
+        top_frame.grid(row=0, column=0, columnspan=4, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', 
+            command=self.convert, state=tk.DISABLED)
         self.fromexcel_convert_button.grid(row=2, column=2)
-        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', command=self.deselect, state=tk.DISABLED)
+        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', 
+            command=self.deselect, state=tk.DISABLED)
         self.fromexcel_deselect_button.grid(row=2, column=3)
 
         label_frame  = ttk.LabelFrame(main_frame, text=' Edit keys, if you need. ')
         label_frame.grid(row=1, column=0, columnspan=4, pady=30, sticky=(tk.W, tk.E, tk.N, tk.S))
-
         self.keys_box = tk.Listbox(label_frame)
         self.keys_box.grid(row=0, rowspan=3, column=0, pady=20, padx=(20, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
         y_scroll_keys = ttk.Scrollbar(label_frame, orient=tk.VERTICAL, command=self.keys_box.yview)
@@ -162,7 +159,7 @@ class ConverterWindow(ttk.Frame):
             self.key_box.selection_clear(0, tk.END)
         else:
             self.edited_box_deselect()
-
+            
 
     def close(self, event=None):
         self.quit()
@@ -172,20 +169,23 @@ class ConverterWindow(ttk.Frame):
         """Called when item is selected in keys_box(ListBox).
         """
         if indexes := self.keys_box.curselection():
-            index = indexes[0]
-            self.now_selected = self.keys_box.get(index)
-            self.edit_key.set(self.key_table[self.now_selected])
+            item = self.keys_box.get(indexes[0])
+            self.now_selected = item.split('  ')[0]
+            key = self.key_table[self.now_selected]
+            self.edit_key.set(key.real)
     
     
     def edit(self, event=None):
         """Called when ok button on FromExcel tab is clicked.
         """
         if edited := self.edit_key.get():
-            original = self.key_table[self.now_selected]
-            if original != edited:
-                num = len(self.now_selected)-len(original)
-                self.edited_keys[self.now_selected] = edited
-                self.edited_box.insert(tk.END, self.now_selected[:num] + edited)
+            if self.now_selected in self.edited_keys:
+                messagebox.showerror('Error', f'{self.now_selected} was already edited.')
+            else:
+                original_key = self.key_table[self.now_selected] 
+                if original_key.real != edited:
+                    self.edited_keys[self.now_selected] = Key(original_key.nested, edited)
+                    self.edited_box.insert(tk.END, f'{self.now_selected}  {edited}')
         self.edit_entry.delete(0, tk.END)
         self.keys_box.select_clear(0, tk.END)
 
@@ -229,7 +229,7 @@ class ConverterWindow(ttk.Frame):
 
 
     def to_excel(self):
-        """Called when click convert button on toexcel tab.
+        """Called when convert button on toexcel tab is clicked.
         """
         if selected_keys := [self.key_box.get(x) for x in self.key_box.curselection()]:
             self.converter.partial_convert(*selected_keys)
@@ -239,15 +239,16 @@ class ConverterWindow(ttk.Frame):
         
 
     def from_excel(self):
-        """Called when click convert button on fromexcel tab.
+        """Called when convert button on fromexcel tab is clicked.
         """
-        replacement = self.edited_keys if self.edited_keys else None
-        self.converter.convert(replacement)
+        replacement = {key.nested: key.real for key in self.edited_keys.values()} \
+            if self.edited_keys else None
+        self.converter.convert(replacement=replacement)
         messagebox.showinfo('Info', 'Complete!')
 
 
     def open_json(self):
-        """Called when click open button on toexcel tab.
+        """Called when open button on toexcel tab is clicked.
         """
         self.switch_button_state(tk.DISABLED)
         self.select_file('json', self.json_path)
@@ -264,7 +265,7 @@ class ConverterWindow(ttk.Frame):
 
 
     def open_excel(self):
-        """Called when click open button on fromexcel tab.
+        """Called when open button on fromexcel tab is clicked.
         """
         self.select_file('xlsx', self.excel_path)
         self.keys_box.delete(0, tk.END)
@@ -273,18 +274,31 @@ class ConverterWindow(ttk.Frame):
         if converter := self.set_converter(self.excel_path, FromExcel):
             self.converter = converter
             converter.set_sheets()
-            self.key_table = set()
+            key_table = set()
             for sh in converter.sheets:
-                self.key_table.update({(nested_key, real_key) for key 
-                    in sh.keys for nested_key, real_key in converter.separate(key)})
-            self.key_table = dict(self.key_table)
-            self.keys_box.insert(tk.END, *sorted(self.key_table.keys()))
+                key_table.update({Key(nested_key, real_key) for sh_keys 
+                    in sh.keys for nested_key, real_key in converter.separate(sh_keys)})
+            len_table = len(key_table)
+            zeros = len(str(len_table))
+            self.key_table = {str(i).zfill(zeros): key for i, key in enumerate(sorted(key_table), 1)}
+            display_keys = [f'{idx}  {key.nested}' for idx, key in self.key_table.items()]
+            self.keys_box.insert(tk.END, *display_keys)
             self.switch_button_state(tk.NORMAL)
 
 
     def edited_box_deselect(self):
-        pass
-        
+        """Called when deselect button on fromexcel tab is clicked.
+        """
+        delete_items = []
+        for index in sorted(self.edited_box.curselection(), reverse=True):
+            selected = self.edited_box.get(index)
+            # index number is append to delete_item list
+            delete_items.append(selected.split('  ')[0])
+            self.edited_box.delete(index)
+        self.edited_keys = {k: v for k, v in self.edited_keys.items() \
+            if k not in delete_items}
+        print(self.edited_keys)
+
         
 def main():
     application = tk.Tk()

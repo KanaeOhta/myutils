@@ -507,3 +507,4 @@ class FromExcel(Convert):
     def output(self, records, indent):
         json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)
+        

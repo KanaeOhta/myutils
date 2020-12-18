@@ -1,5 +1,8 @@
 from collections import namedtuple
+<<<<<<< HEAD
 import errno
+=======
+>>>>>>> 7219a99b2da8ea1101027eb7741bc1e42a2df09c
 import os
 import tkinter as tk
 import tkinter.ttk as ttk

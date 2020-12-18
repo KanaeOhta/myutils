@@ -1,8 +1,5 @@
 from collections import namedtuple
-<<<<<<< HEAD
 import errno
-=======
->>>>>>> 7219a99b2da8ea1101027eb7741bc1e42a2df09c
 import os
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -122,6 +119,8 @@ class ConverterWindow(ttk.Frame):
         self.edit_entry.grid(row=0, column=2, pady=(20, 0), padx=(20, 0), sticky=(tk.W, tk.N, tk.E))
         ok_button = ttk.Button(label_frame, text='OK', width=4, command=self.edit)
         ok_button.grid(row=0, column=3, pady=(19, 0), sticky=(tk.N, tk.E))
+        ok_button.bind('<Return>', self.edit)
+
         allow_label = ttk.Label(label_frame, text='↓')
         allow_label.grid(row=1, column=2, pady=2, padx=(30, 20), sticky=tk.N)
         self.edited_box = tk.Listbox(label_frame, selectmode='multiple')

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='jsonexel',
+    name='jsonexcel',
     version='0.0.1',
     author='Kanae Ohta',
     author_email='kanae5321@gmail.com',

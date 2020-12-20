@@ -25,11 +25,9 @@ class ConverterWindow(ttk.Frame):
 
 
     def create_variables(self):
-        self.indent_list = [0, 2, 4]
         self.json_path = tk.StringVar()
         self.excel_path = tk.StringVar()
         self.edit_key = tk.StringVar()
-        self.indent = tk.StringVar()
         self.now_selected = None
        
        
@@ -99,13 +97,6 @@ class ConverterWindow(ttk.Frame):
         top_frame = self.create_tab_top_frame(main_frame, self.excel_path)
         top_frame.grid(row=0, column=0, columnspan=4, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', 
-            command=self.convert, state=tk.DISABLED)
-        self.fromexcel_convert_button.grid(row=2, column=2)
-        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', 
-            command=self.deselect, state=tk.DISABLED)
-        self.fromexcel_deselect_button.grid(row=2, column=3)
-
         label_frame  = ttk.LabelFrame(main_frame, text=' Edit keys, if you need. ')
         label_frame.grid(row=1, column=0, columnspan=4, pady=30, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.keys_box = tk.Listbox(label_frame)
@@ -114,13 +105,11 @@ class ConverterWindow(ttk.Frame):
         self.keys_box['yscrollcommand'] = y_scroll_keys.set
         y_scroll_keys.grid(row=0, rowspan=3, column=1, pady=20, padx=(0, 10), sticky=(tk.N, tk.S, tk.E))
         self.keys_box.bind('<<ListboxSelect>>', self.keys_box_click)
-
         self.edit_entry = ttk.Entry(label_frame, textvariable=self.edit_key, width=20)
         self.edit_entry.grid(row=0, column=2, pady=(20, 0), padx=(20, 0), sticky=(tk.W, tk.N, tk.E))
         ok_button = ttk.Button(label_frame, text='OK', width=4, command=self.edit)
         ok_button.grid(row=0, column=3, pady=(19, 0), sticky=(tk.N, tk.E))
         ok_button.bind('<Return>', self.edit)
-
         allow_label = ttk.Label(label_frame, text='↓')
         allow_label.grid(row=1, column=2, pady=2, padx=(30, 20), sticky=tk.N)
         self.edited_box = tk.Listbox(label_frame, selectmode='multiple')
@@ -128,6 +117,13 @@ class ConverterWindow(ttk.Frame):
         y_scroll_edited = ttk.Scrollbar(label_frame, orient=tk.VERTICAL, command=self.edited_box.yview)
         self.edited_box['yscrollcommand'] = y_scroll_edited.set
         y_scroll_edited.grid(row=2, column=4, pady=(5, 20), padx=(0, 20), sticky=(tk.N, tk.S, tk.W))
+
+        self.fromexcel_convert_button = ttk.Button(main_frame, text='Convert', 
+            command=self.convert, state=tk.DISABLED)
+        self.fromexcel_convert_button.grid(row=2, column=2)
+        self.fromexcel_deselect_button = ttk.Button(main_frame, text='Deselect', 
+            command=self.deselect, state=tk.DISABLED)
+        self.fromexcel_deselect_button.grid(row=2, column=3)
 
         label_frame.columnconfigure(0, weight=1)
         label_frame.columnconfigure(2, weight=1)
@@ -137,6 +133,8 @@ class ConverterWindow(ttk.Frame):
 
 
     def open(self, event=None):
+        """Called when open button is clicked.
+        """
         tab_name = self.get_current_tab_name()
         if tab_name == TOEXCEL:
             self.open_json()
@@ -169,10 +167,12 @@ class ConverterWindow(ttk.Frame):
 
 
     def keys_box_click(self, event=None):
-        """Called when item is selected in keys_box(ListBox).
+        """Called when item is selected in keys_box(ListBox)
+           on FromExcel tab.
         """
         if indexes := self.keys_box.curselection():
             item = self.keys_box.get(indexes[0])
+            # item is 'serial number + two spaces + key
             self.now_selected = item.split('  ')[0]
             key = self.key_table[self.now_selected]
             self.edit_key.set(key.real)
@@ -194,6 +194,9 @@ class ConverterWindow(ttk.Frame):
 
 
     def select_file(self, ext, string_var):
+        """Called by open_json or open_excel method 
+           when open button is clicked.
+        """
         initialdir = os.path.abspath(os.path.dirname(__file__))
         filetypes = [('Data file', f'*.{ext}')]
         target_file = dialog.askopenfilename(
@@ -206,7 +209,7 @@ class ConverterWindow(ttk.Frame):
         if target_file := string_var.get():
             try:
                 converter = class_(target_file)
-            # Whether the selected file exists is checked by tkinter doalog.  
+            # Whether the selected file exists is checked by tkinter dialog.  
             except ExtensionError as e:
                 messagebox.showerror('Error', e)
                 string_var.set('')
@@ -277,6 +280,7 @@ class ConverterWindow(ttk.Frame):
         self.select_file('xlsx', self.excel_path)
         self.keys_box.delete(0, tk.END)
         self.edited_box.delete(0, tk.END)
+        self.edit_entry.delete(0, tk.END)
         self.edited_keys = {}
         if converter := self.set_converter(self.excel_path, FromExcel):
             self.converter = converter
@@ -304,7 +308,6 @@ class ConverterWindow(ttk.Frame):
             self.edited_box.delete(index)
         self.edited_keys = {k: v for k, v in self.edited_keys.items() \
             if k not in delete_items}
-        print(self.edited_keys)
 
         
 def main():

@@ -1,3 +1,6 @@
+[![Github all releases](https://img.shields.io/github/downloads/Naereen/StrapDown.js/total.svg)](https://GitHub.com/Naereen/StrapDown.js/releases/)
+
+
 # JsonExcel
 
 Export JSON-format data to Excel like RDB or the exported data in Excel to JSON file.

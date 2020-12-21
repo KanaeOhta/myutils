@@ -377,7 +377,7 @@ class ToExcel(Convert):
             {self.HYPHEN: '_', self.DOT: '_'})
         self.sheet_format = {}
         self.sheets = None
-       
+   
 
     def set_replace_table(self, replacement): 
         table = str.maketrans(replacement)
@@ -443,9 +443,10 @@ class ToExcel(Convert):
                 )
 
   
-    def write(self, sh_name, cell):
+    def write(self, cell):
         """Get column and row numbers to write value to worksheet.
         """
+        sh_name = self.sheet_format.get(cell.key)
         sheet = self.sheets[sh_name]
         col = sheet.column(cell.key)
         row = sheet.row(cell.idx)
@@ -458,8 +459,7 @@ class ToExcel(Convert):
             self.set_sheets(wb)
             for record in records:
                 for cell in record:
-                    sh_name = self.sheet_format.get(cell.key)
-                    self.write(sh_name, cell)
+                    self.write(cell)
 
 
 class FromExcel(Convert):
@@ -507,4 +507,3 @@ class FromExcel(Convert):
     def output(self, records, indent):
         json_file = JsonFile(self.output_file) 
         json_file.output(records, indent)
-        

@@ -50,7 +50,12 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
     )                                                        
    ```
    
-   
+  # Converter Tool
+  
+  ```bash
+  >>>python converter.py
+  ```
+  
   # Note
   
    * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.

@@ -397,8 +397,9 @@ class ToExcel(Convert):
 
     def get_selected_records(self, keys):
         for i, dic in enumerate(self.json, 1):
+            replaced_dic = self.replace(self._replace, dic)
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(self._replace, dic), str(i)) if key in keys)
+                in self.serialize(replaced_dic, str(i)) if key in keys)
 
 
     def partial_convert(self, *keys):
@@ -412,8 +413,9 @@ class ToExcel(Convert):
 
     def get_records(self):
         for i, dic in enumerate(self.json, 1):
+            replaced_dic = self.replace(self._replace, dic)
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(self.replace(self._replace, dic), str(i)))
+                in self.serialize(replaced_dic, str(i)))
 
 
     def convert(self):

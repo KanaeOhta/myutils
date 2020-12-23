@@ -60,14 +60,4 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   
    * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.
    * When exporting data in Excel to JSON file, specify replacement if you want to change keys in which hyphens or dots were replaced with underbar.
-   
-   <pre>
-   {"name": "aaa",
-    "place": {
-        "lat": 555,
-        "ret": 666
-    }
-   }
-   </pre>
-   
   

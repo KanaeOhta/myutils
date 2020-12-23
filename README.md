@@ -6,6 +6,12 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 ![spec](https://user-images.githubusercontent.com/48859041/101023648-67febd80-35b6-11eb-9e06-b6146aef7c04.png)
 
 
+# Converter Tool
+  
+  
+![converter_demo](https://user-images.githubusercontent.com/48859041/102998457-8713be00-456a-11eb-8899-10b9f3399c22.gif)
+
+
 # Requirements
 
 * Python 3.8
@@ -16,6 +22,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 # Environment
 
 * Windows10
+* Excel 2016
 
 
 # Usage
@@ -36,7 +43,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   
   ### *class* FromExcel(path)
   
-   * Exported data in Excel to JSON file. 
+   * Export data in Excel to JSON file. 
    * The Excel must be the file output with convert method of ToExcel class.  
    
    ```bash
@@ -46,23 +53,41 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    from_excel.convert()                                          # Export data to JSON file
    from_excel.convert(
        indent=4,                                                 # If you need indent on JSON file, specify number.
-       replacement={'apps.app_id': 'app-id, 'price': 'prices'}   # If you need to change key name, specify dict
+       replacement={'apps.app_id': 'app-id, 'price': 'prices'}   # If you need to change key name, specify dict.
     )                                                        
    ```
-   
-  # Converter Tool
+
+# Converter Tool Usage
   
+ ```bash
+ >>>python converter.py
+ ```
+
+ ### Export JSON-format data to Excel
+ 
+  1. Select [ToExcel] tab.
+  2. Click [Open] button to select a JSON file.
+  3. If you need, click keys in the listbox to select data to be exported.
+     * If you cancel, click the [Deselect] button.
+     * All the selected keys are canceled.
+  4. Click [Convert] button.
   
-![converter_demo](https://user-images.githubusercontent.com/48859041/102998457-8713be00-456a-11eb-8899-10b9f3399c22.gif)
-
-
-  ```bash
-  >>>python converter.py
-  ```
-
-
+ 
+ ### Export data in Excel to JSON file
+ 
+  1. Select [FromExcel] tab.
+  2. Click [Open] button to select an Excel file.
+  3. If you need, edit keys.
+     * Click a key you want to edit in the left listbox.
+     * The key you clicked is entered into the right textbox.
+     * Edit the key and click [OK] button.
+     * The edited key is moved into the right listbox.
+     * If you want to cancel the edit, select the edited key in the right listbox and click [Deselect] button.
+  4. Click [Convert] button.
+ 
+  
   # Note
   
-   * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before export to Excel file.
+   * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before exported to an Excel file.
    * When exporting data in Excel to JSON file, specify replacement if you want to change keys in which hyphens or dots were replaced with underbar.
   

@@ -53,7 +53,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    from_excel.convert()                                          # Export data to JSON file
    from_excel.convert(
        indent=4,                                                 # If you need indent on JSON file, specify number.
-       replacement={'apps.app_id': 'app-id, 'price': 'prices'}   # If you need to change key name, specify dict.
+       replacement={'apps.app_id': 'app-id, 'price': 'prices'}   # If you need to change key name, specify dict {compressed key: edited last_level key}.
     )                                                        
    ```
 
@@ -68,8 +68,8 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   1. Select [ToExcel] tab.
   2. Click [Open] button to select a JSON file.
   3. If you need, click keys in the listbox to select data to be exported.
-     * If you cancel, click the [Deselect] button.
-     * All the selected keys are canceled.
+     * If you want to cancel the selection, click the [Deselect] button.
+     * If [Deselect] button is clicked, all the selected keys are canceled.
   4. Click [Convert] button.
   
  
@@ -81,7 +81,7 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
      * Click a key you want to edit in the left listbox.
      * The key you clicked is entered into the right textbox.
      * Edit the key and click [OK] button.
-     * The edited key is moved into the right listbox.
+     * If [OK] button is clicked, the edited key is moved into the right listbox.
      * If you want to cancel the edit, select the edited key in the right listbox and click [Deselect] button.
   4. Click [Convert] button.
  
@@ -89,5 +89,5 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
   # Note
   
    * If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before exported to an Excel file.
-   * When exporting data in Excel to JSON file, specify replacement if you want to change keys in which hyphens or dots were replaced with underbar.
+   * When exporting data in Excel to JSON file, specify argument(replacement) if you want to change keys in which hyphens or dots were replaced with underbar.
   

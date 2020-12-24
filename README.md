@@ -6,12 +6,6 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
 ![spec](https://user-images.githubusercontent.com/48859041/101023648-67febd80-35b6-11eb-9e06-b6146aef7c04.png)
 
 
-# Converter Tool
-  
-  
-![converter_demo](https://user-images.githubusercontent.com/48859041/102998457-8713be00-456a-11eb-8899-10b9f3399c22.gif)
-
-
 # Requirements
 
 * Python 3.8
@@ -58,6 +52,10 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
    ```
 
 # Converter Tool Usage
+  
+  
+![converter_demo](https://user-images.githubusercontent.com/48859041/102998457-8713be00-456a-11eb-8899-10b9f3399c22.gif)  
+  
   
  ```bash
  >>>python converter.py

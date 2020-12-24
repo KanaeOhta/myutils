@@ -96,6 +96,7 @@ dic8 = {'h': [{'i': {'k-k': [5, 6], 'l': 100}, 'j.j': 6}, {'i': {'k-k': [7, 8], 
 dic9 = {'c': [{'f': 5, 'g': [{'h': 100, 'i-i': 120}, {'h': 200, 'i-i': 220}]}, {'f': 7, 'g': [{'h': 150, 'i-i': 180}]}]}
 dic10 = {'c': [{'f': 5, 'g': [{'h': 100, 'i': {'j': 15, 'k-k':16}}, {'h': 200, 'i': {'j': 17, 'k-k':18}}]}, {'f': 7, 'g': [{'h': 150, 'i': {'j': 19, 'k-k':20}}]}]}
 dic11 = {'d': [[{'h.h': 5, 'i': 10}, {'h.h': 50, 'i': 1000}], [{'h.h': 50, 'i': 30}, {'h.h': 80, 'i': 100}]]}
+dic12 = {'a': 1, 'c-c': {'a.b': 2, 'b.c': {'x-d': 5, 'y-d': 10}}, 'd-f': [1, 2, 3]}
 
 serialized1 = {('a_a', '1'): 1, ('c.a_a', '1'): 2, ('c.b.x_x', '1'): 5, ('c.b.y', '1'): 10, ('d_d-0', '1'): 1, ('d_d-1', '1'): 2, ('d_d-2', '1'): 3}
 serialized2 = {('e.f_f', '1-0'): 5, ('e.g', '1-0'): 6, ('e.f_f', '1-1'): 100, ('e.g', '1-1'): 120}
@@ -114,12 +115,16 @@ serialized10 = {('c.f', '1-0'): 5, ('c.g.h', '1-0-0'): 100, ('c.g.i.j', '1-0-0')
     ('c.f', '1-1'): 7, ('c.g.h', '1-1-0'): 150, ('c.g.i.j', '1-1-0'): 19, ('c.g.i.k_k', '1-1-0'): 20} 
 serialized11 = {('d-0.h_h', '1-0'): 5, ('d-0.i', '1-0'): 10, ('d-0.h_h', '1-1'): 50, ('d-0.i', '1-1'): 1000,
     ('d-1.h_h', '1-0'): 50, ('d-1.i', '1-0'): 30, ('d-1.h_h', '1-1'): 80, ('d-1.i', '1-1'): 100}
+serialized12 = {('a', '1'): 1, ('c_c.a_b', '1'): 2, ('c_c.b_c.x_d', '1'): 5, ('c_c.b_c.y_d', '1'): 10, 
+    ('d_f-0', '1'): 1, ('d_f-1', '1'): 2, ('d_f-2', '1'): 3}
+
 
 parsed1 = {'a_a': ExcelSheet.MAIN, 'c.a_a': ExcelSheet.MAIN, 'c.b.x_x': ExcelSheet.MAIN, 'c.b.y': ExcelSheet.MAIN, 'd_d-0': ExcelSheet.MAIN,
     'd_d-1': ExcelSheet.MAIN, 'd_d-2': ExcelSheet.MAIN}
 parsed2 = {'e.f_f': 'e', 'e.g': 'e'}
 parsed3 = {'e.h_h-0': 'e', 'e.h_h-1': 'e'}
-parsed4 = {'d_d-0-0': ExcelSheet.MAIN, 'd_d-0-1': ExcelSheet.MAIN, 'd_d-0-2': ExcelSheet.MAIN, 'd_d-1-0': ExcelSheet.MAIN, 'd_d-1-1': ExcelSheet.MAIN, 'd_d-1-2': ExcelSheet.MAIN}
+parsed4 = {'d_d-0-0': ExcelSheet.MAIN, 'd_d-0-1': ExcelSheet.MAIN, 'd_d-0-2': ExcelSheet.MAIN, 'd_d-1-0': ExcelSheet.MAIN,
+    'd_d-1-1': ExcelSheet.MAIN, 'd_d-1-2': ExcelSheet.MAIN}
 parsed5 = {'a_a-0': ExcelSheet.MAIN, 'b_b-0-0': ExcelSheet.MAIN, 'b_b-1-0': ExcelSheet.MAIN}
 parsed6 = {'a': ExcelSheet.MAIN, 'c.a': ExcelSheet.MAIN, 'c.b.x_x': ExcelSheet.MAIN, 'c.b.y_y': ExcelSheet.MAIN, 'd-0': ExcelSheet.MAIN}
 parsed7 = {'e.f': 'e', 'e.g': 'e', 'h.i': 'h', 'h.j_j': 'h'}
@@ -127,6 +132,8 @@ parsed8 = {'h.i.k_k-0': 'h', 'h.i.k_k-1': 'h', 'h.i.l': 'h', 'h.j_j': 'h'}
 parsed9 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i_i': 'c.g'}
 parsed10 = {'c.f': 'c', 'c.g.h': 'c.g', 'c.g.i.j': 'c.g', 'c.g.i.k_k': 'c.g'} 
 parsed11 = {'d-0.h_h': 'd-0', 'd-0.i': 'd-0', 'd-1.h_h': 'd-1', 'd-1.i': 'd-1'}
+parsed12 = {'a': ExcelSheet.MAIN, 'c_c.a_b': ExcelSheet.MAIN, 'c_c.b_c.x_d': ExcelSheet.MAIN, 'c_c.b_c.y_d': ExcelSheet.MAIN, 'd_f-0': ExcelSheet.MAIN,
+    'd_f-1': ExcelSheet.MAIN, 'd_f-2': ExcelSheet.MAIN}
 
 replacement1 = {'a_a': 'a-a', 'c.a_a': 'a.a', 'c.b.x_x': 'x.x', 'd_d': 'd-d'}
 replacement2 = {'e.f_f': 'f-f'}
@@ -138,7 +145,8 @@ replacement7 = {'h.j_j': 'j.j'}
 replacement8 = {'h.i.k_k': 'k-k', 'h.j_j': 'j.j'}
 replacement9 = {'c.g.i_i': 'i-i'}
 replacement10 = {'c.g.i.k_k': 'k-k'}
-replacement11 = {'d.h_h': 'h.h'} 
+replacement11 = {'d.h_h': 'h.h'}
+replacement12 = {'c_c': 'c-c', 'c_c.a_b': 'a.b', 'c_c.b_c': 'b.c', 'c_c.b_c.x_d': 'x-d', 'c_c.b_c.y_d': 'y-d', 'd_f': 'd-f'}
 
 
 if __name__ == '__main__':

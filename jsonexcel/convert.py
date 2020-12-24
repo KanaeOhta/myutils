@@ -343,7 +343,7 @@ class Convert:
            If dic is {'a': {'b': {'c_c': 5}}, 'd': 6} and replacement is {'a.b.c_c': 'c-c'},
            dic will be changed to {'a': {'b': {'c-c': 5}}, 'd': 6}
         """
-        for old_keys, new_key in replacement.items():
+        for old_keys, new_key in replacement:
             split_keys = old_keys.split('.')
             # split_keys[-1] will be replaced
             old_key = split_keys[-1]
@@ -486,6 +486,8 @@ class FromExcel(Convert):
     def convert(self, indent=None, replacement=None):
         self.set_sheets()
         if replacement:
+            replacement = tuple(sorted(replacement.items(), 
+                key=lambda x: x[0], reverse=True))
             _replace = partial(self.replace_selected_keys, replacement)
             records = (_replace(record) for record in self.read())
         else:

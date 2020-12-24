@@ -51,6 +51,13 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
     )                                                        
    ```
 
+
+# Note
+  
+* If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before exported to an Excel file.
+* When exporting data in Excel to JSON file, specify argument(replacement) if you want to change keys in which hyphens or dots were replaced with underbar.
+
+
 # Converter Tool
   
   
@@ -82,10 +89,3 @@ Export JSON-format data to Excel like RDB or the exported data in Excel to JSON 
      * If [OK] button is clicked, the edited key is moved into the right listbox.
      * If you want to cancel the edit, select the edited key in the right listbox and click [Deselect] button.
   4. Click [Convert] button.
- 
-  
-# Note
-  
-* If hyphens(-) or dots(.) are found in keys in a JSON file, they are replaced with underbar(\_) before exported to an Excel file.
-* When exporting data in Excel to JSON file, specify argument(replacement) if you want to change keys in which hyphens or dots were replaced with underbar.
-  

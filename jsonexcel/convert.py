@@ -178,11 +178,16 @@ class ReadingSheet(ExcelSheet):
 
 
 def file_check(path, ext):
+    """After the check of path existence and extension,
+       return absolute path. 
+    """
+    path = os.path.abspath(path)
     if not os.path.isfile(path):
         raise FileNotFoundError(
             errno.ENOENT, os.strerror(errno.ENOENT), path)
     if os.path.splitext(path)[-1] != f'.{ext}':
         raise ExtensionError('{} file is not selected.'.format(ext))
+    return path
 
 
 class Convert:
@@ -370,8 +375,7 @@ class ToExcel(Convert):
     """
 
     def __init__(self, json_file):
-        json_file = os.path.abspath(json_file)
-        file_check(json_file, 'json')
+        json_file = file_check(json_file, 'json')
         self.json = JsonFile(json_file)
         self.set_replace_table(
             {self.HYPHEN: '_', self.DOT: '_'})
@@ -470,18 +474,19 @@ class FromExcel(Convert):
     """
 
     def __init__(self, excel_file):
-        excel_file = os.path.abspath(excel_file)
-        file_check(excel_file, 'xlsx')
-        self.output_file = self.get_file_path(excel_file, '.json')
+        self.excel_file = file_check(excel_file, 'xlsx')
         self.wb = openpyxl.load_workbook(excel_file)
         self.sheets = None
         
         
     def set_sheets(self):
+        """Open workbook to create ReadingSheet instances and 
+           return the workbook object.
+        """
         if self.sheets is None:
             self.sheets = tuple(ReadingSheet(sh) for sh \
                 in self.wb if sh.cell(row=2, column=1).value)
-    
+      
 
     def convert(self, indent=None, replacement=None):
         self.set_sheets()
@@ -493,8 +498,8 @@ class FromExcel(Convert):
         else:
             records = (record for record in self.read())
         self.output(records, indent)
-        self.wb.close()
-
+        self.sheets = None
+     
     
     def read(self):
         for i in itertools.count(1):
@@ -509,5 +514,6 @@ class FromExcel(Convert):
 
 
     def output(self, records, indent):
-        json_file = JsonFile(self.output_file) 
+        output_file = self.get_file_path(self.excel_file, '.json')
+        json_file = JsonFile(output_file)
         json_file.output(records, indent)

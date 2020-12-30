@@ -64,7 +64,7 @@ class WritingSheet(ExcelSheet):
     def __init__(self, sheet, keys, row=0, index=''):
         super().__init__(sheet)
         self._row = row
-        self._index = index
+        self.index = index
         self.pattern = re.compile(WritingSheet.URL)
         self.set_keys(keys)
     
@@ -81,8 +81,8 @@ class WritingSheet(ExcelSheet):
 
 
     def row(self, index):
-        if self._index != index:
-            self._index = index
+        if self.index != index:
+            self.index = index
             self._row += 1
         return self._row
 
@@ -91,7 +91,8 @@ class WritingSheet(ExcelSheet):
         if index:
             self.sheet.write(row, 0, index)
         if not col:
-            pass
+            return
+            # pass
         if type(value) in {float, int}:
             self.sheet.write_number(row, col, value)
         elif isinstance(value, list) or value is None:
@@ -366,7 +367,7 @@ class Convert:
            ('AA', 'AA), ('AA.BB', 'BB) and ('AA.BB.CC', 'CC) are returned. 
         """
         li = [key.split(self.HYPHEN)[0] for key in keys.split(self.DOT)]
-        for i, key in enumerate(li, 1):
+        for i, _ in enumerate(li, 1):
             yield '.'.join(li[:i]), li[:i][-1] 
 
 
@@ -455,9 +456,10 @@ class ToExcel(Convert):
         sh_name = self.sheet_format.get(cell.key)
         sheet = self.sheets[sh_name]
         col = sheet.column(cell.key)
+        idx = cell.idx if sheet.index != cell.idx else ''
         row = sheet.row(cell.idx)
-        sheet.write(row, col, cell.value, cell.idx)
-
+        sheet.write(row, col, cell.value, idx)
+        
 
     def output(self, records):
         excel_file = self.get_file_path(self.json.file, '.xlsx')
@@ -475,7 +477,7 @@ class FromExcel(Convert):
 
     def __init__(self, excel_file):
         self.excel_file = file_check(excel_file, 'xlsx')
-        self.wb = openpyxl.load_workbook(excel_file)
+        self.wb = openpyxl.load_workbook(self.excel_file)
         self.sheets = None
         
         

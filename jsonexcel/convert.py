@@ -92,7 +92,6 @@ class WritingSheet(ExcelSheet):
             self.sheet.write(row, 0, index)
         if not col:
             return
-            # pass
         if type(value) in {float, int}:
             self.sheet.write_number(row, col, value)
         elif isinstance(value, list) or value is None:

@@ -23,7 +23,7 @@ class JsonFile:
 
     def __init__(self, file):
         self.file = file
-
+    
 
     def __iter__(self):
         with open(self.file, 'r', encoding='utf-8') as f:
@@ -377,57 +377,60 @@ class ToExcel(Convert):
     def __init__(self, json_file):
         json_file = file_check(json_file, 'json')
         self.json = JsonFile(json_file)
-        self.set_replace_table(
+        self.set_replace_func(
             {self.HYPHEN: '_', self.DOT: '_'})
         self.sheet_format = {}
-        self.sheets = None
+        # self.sheets = None
    
 
-    def set_replace_table(self, replacement): 
+    def read_json(self):
+        for dic in self.json:
+            yield self._replace(dic)
+    
+
+    def set_replace_func(self, replacement): 
         table = str.maketrans(replacement)
-        self._replace = lambda x: x.translate(table)
+        _replace = lambda x: x.translate(table)
+        self._replace = partial(self.replace, _replace)
     
     
     def set_sheet_format(self):
         """Create dict {column name: Column namedtuple}
         """
         if not self.sheet_format:
-            for dic in self.json:
-                for group, key in self.parse_json(
-                        self.replace(self._replace, dic), group=ExcelSheet.MAIN): 
+            for dic in self.read_json():
+                for group, key in self.parse_json(dic, group=ExcelSheet.MAIN): 
                     if key not in self.sheet_format.keys():
                         self.sheet_format[key] = group
-
+       
 
     def get_selected_records(self, keys):
-        for i, dic in enumerate(self.json, 1):
-            replaced_dic = self.replace(self._replace, dic)
+        for i, dic in enumerate(self.read_json(), 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(replaced_dic, str(i)) if key in keys)
+                in self.serialize(dic, str(i)) if key in keys)
 
 
     def partial_convert(self, *keys):
         self.set_sheet_format()
         self.sheet_format = {key: val for key, val \
             in self.sheet_format.items() if key in keys}
-        records = iter(self.get_selected_records(keys))
+        records = self.get_selected_records(keys)
         self.output(records)
         self.sheet_format = {}
 
 
     def get_records(self):
-        for i, dic in enumerate(self.json, 1):
-            replaced_dic = self.replace(self._replace, dic)
+        for i, dic in enumerate(self.read_json(), 1):
             yield (Cell(key, idx, val) for key, idx, val \
-                in self.serialize(replaced_dic, str(i)))
+                in self.serialize(dic, str(i)))
 
 
     def convert(self):
         self.set_sheet_format()
-        records = iter(self.get_records())
+        records = self.get_records()
         self.output(records)
         self.sheet_format = {}
-
+     
 
     def set_sheets(self, wb):
         """Create dict {sh_name: WritingSheet instance}
@@ -497,7 +500,7 @@ class FromExcel(Convert):
             _replace = partial(self.replace_selected_keys, replacement)
             records = (_replace(record) for record in self.read())
         else:
-            records = (record for record in self.read())
+            records = self.read()
         self.output(records, indent)
         self.sheets = None
      

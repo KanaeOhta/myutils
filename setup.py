@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='jsonexcel',
-    version='1.0.4',
+    version='1.0.5',
     author='Kanae Ohta',
     author_email='kanae5321@gmail.com',
     url='https://github.com/taKana671/JsonExcel.git',

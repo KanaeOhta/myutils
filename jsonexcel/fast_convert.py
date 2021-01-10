@@ -1,5 +1,5 @@
 from pyexcelerate import Workbook
-from convert import ToExcel, WritingSheet
+from jsonexcel import ToExcel, WritingSheet
 
 
 class FastWritingSheet(WritingSheet):
